@@ -10,7 +10,7 @@ const path = require('path');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, path.join(__dirname, '../../uploads/'));
   },
   filename: function (req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -68,13 +68,22 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 exports.getPosts = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.user.id);
   
-  // Get posts from user and their friends
-  const posts = await Post.find({
-    $or: [
+  // Build query
+  let query = {};
+  
+  // If author is specified, only get posts from that author
+  if (req.query.author) {
+    query.author = req.query.author;
+  } else {
+    // Otherwise get posts from user and their friends
+    query.$or = [
       { author: req.user.id },
       { author: { $in: user.friends } }
-    ]
-  })
+    ];
+  }
+  
+  // Get posts
+  const posts = await Post.find(query)
     .populate('author', 'username profilePicture')
     .populate('likes', 'username')
     .populate({

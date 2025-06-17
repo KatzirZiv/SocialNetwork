@@ -1,10 +1,11 @@
 const User = require('../models/User');
-const { validationResult } = require('express-validator');
-const asyncHandler = require('../middleware/async');
-const ErrorResponse = require('../utils/errorResponse');
-const multer = require('multer');
+const Post = require('../models/Post');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
+const asyncHandler = require('../middleware/async');
+const ErrorResponse = require('../utils/errorResponse');
+const { validationResult } = require('express-validator');
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -115,8 +116,19 @@ exports.getUsers = async (req, res) => {
 // @route   GET /api/users/:id
 // @access  Private
 exports.getUser = async (req, res) => {
+  console.log('[USERS CONTROLLER] getUser HIT', req.originalUrl, req.params);
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id)
+      .select('-password')
+      .populate({
+        path: 'friends',
+        select: 'username profilePicture _id'
+      })
+      .populate({
+        path: 'friendRequests.from',
+        select: 'username profilePicture _id'
+      });
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -355,10 +367,34 @@ exports.removeFriend = async (req, res) => {
 
 // @desc    Search users
 // @route   GET /api/users/search
-// @access  Private
+// @access  Public
 exports.searchUsers = async (req, res) => {
   try {
+    console.log('=== Search Users Controller ===');
+    console.log('Request details:', {
+      method: req.method,
+      url: req.originalUrl,
+      query: req.query,
+      headers: req.headers,
+      params: req.params,
+      user: req.user ? { id: req.user._id, username: req.user.username } : 'Not authenticated'
+    });
+
     const { query } = req.query;
+    if (!query) {
+      console.log('No query provided');
+      return res.status(400).json({
+        success: false,
+        error: 'Search query is required'
+      });
+    }
+
+    console.log('Search query:', query);
+
+    // Get current user ID from auth token if available
+    const currentUserId = req.user?._id;
+    console.log('Current user ID:', currentUserId);
+
     const searchQuery = {
       $or: [
         { username: { $regex: query, $options: 'i' } },
@@ -366,20 +402,44 @@ exports.searchUsers = async (req, res) => {
       ]
     };
 
+    // Exclude current user from search results if logged in
+    if (currentUserId) {
+      searchQuery._id = { $ne: currentUserId };
+      console.log('Excluding current user from search:', currentUserId);
+    }
+
+    console.log('MongoDB search query:', searchQuery);
+
     const users = await User.find(searchQuery)
       .select('-password')
       .limit(10);
 
-    res.status(200).json({
+    console.log('Search results:', {
+      count: users.length,
+      users: users.map(u => ({
+        id: u._id,
+        username: u.username,
+        email: u.email
+      }))
+    });
+
+    const response = {
       success: true,
       count: users.length,
       data: users
+    };
+
+    console.log('Sending response:', response);
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('=== Search Users Error ===');
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack
     });
-  } catch (err) {
-    console.error(err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      error: error.message
     });
   }
 };
@@ -387,103 +447,171 @@ exports.searchUsers = async (req, res) => {
 // @desc    Send friend request
 // @route   POST /api/users/:id/friend-request
 // @access  Private
-exports.sendFriendRequest = asyncHandler(async (req, res, next) => {
-  const targetUser = await User.findById(req.params.id);
-  const currentUser = await User.findById(req.user.id);
+exports.sendFriendRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fromUserId = req.user._id;
 
-  if (!targetUser) {
-    return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
+    console.log('Friend request received:', {
+      targetUserId: id,
+      fromUserId,
+      body: req.body,
+      headers: req.headers,
+      user: req.user
+    });
+
+    // Check if user is trying to send request to themselves
+    if (id === fromUserId.toString()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot send friend request to yourself'
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Check if users are already friends
+    if (user.friends.includes(fromUserId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Users are already friends'
+      });
+    }
+
+    // Check if request already exists
+    const existingRequest = user.friendRequests.find(
+      request => request.from.toString() === fromUserId.toString() && request.status === 'pending'
+    );
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        error: 'Friend request already sent'
+      });
+    }
+
+    // Add friend request
+    user.friendRequests.push({
+      from: fromUserId,
+      status: 'pending',
+      isTemporary: false
+    });
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      data: user,
+      message: 'Friend request sent successfully'
+    });
+  } catch (error) {
+    console.error('Error in sendFriendRequest:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
-
-  // Check if already friends
-  if (currentUser.friends.includes(req.params.id)) {
-    return next(new ErrorResponse('Users are already friends', 400));
-  }
-
-  // Check if request already exists
-  const existingRequest = targetUser.friendRequests.find(
-    (request) => request.from.toString() === req.user.id
-  );
-
-  if (existingRequest) {
-    return next(new ErrorResponse('Friend request already sent', 400));
-  }
-
-  // Add friend request
-  targetUser.friendRequests.push({
-    from: req.user.id,
-    status: 'pending',
-  });
-
-  await targetUser.save();
-
-  res.status(200).json({
-    success: true,
-    data: targetUser.friendRequests,
-  });
-});
+};
 
 // @desc    Accept friend request
 // @route   PUT /api/users/:id/accept-friend
 // @access  Private
-exports.acceptFriendRequest = asyncHandler(async (req, res, next) => {
-  const currentUser = await User.findById(req.user.id);
-  const requestUser = await User.findById(req.params.id);
+exports.acceptFriendRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { requestId } = req.body;
 
-  if (!requestUser) {
-    return next(new ErrorResponse(`User not found with id of ${req.params.id}`, 404));
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Find the friend request
+    const friendRequest = user.friendRequests.id(requestId);
+    if (!friendRequest) {
+      return res.status(404).json({
+        success: false,
+        error: 'Friend request not found'
+      });
+    }
+
+    // Update request status
+    friendRequest.status = 'accepted';
+
+    // Add to friends list
+    user.friends.push(friendRequest.from);
+    
+    // Add current user to friend's friends list
+    const friend = await User.findById(friendRequest.from);
+    if (friend) {
+      friend.friends.push(user._id);
+      await friend.save();
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
-
-  // Find the friend request
-  const friendRequest = currentUser.friendRequests.find(
-    (request) => request.from.toString() === req.params.id && request.status === 'pending'
-  );
-
-  if (!friendRequest) {
-    return next(new ErrorResponse('No pending friend request found', 404));
-  }
-
-  // Update request status
-  friendRequest.status = 'accepted';
-
-  // Add to friends list for both users
-  currentUser.friends.push(req.params.id);
-  requestUser.friends.push(req.user.id);
-
-  await currentUser.save();
-  await requestUser.save();
-
-  res.status(200).json({
-    success: true,
-    data: currentUser.friends,
-  });
-});
+};
 
 // @desc    Reject friend request
 // @route   PUT /api/users/:id/reject-friend
 // @access  Private
-exports.rejectFriendRequest = asyncHandler(async (req, res, next) => {
-  const currentUser = await User.findById(req.user.id);
+exports.rejectFriendRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { requestId } = req.body;
 
-  // Find the friend request
-  const friendRequest = currentUser.friendRequests.find(
-    (request) => request.from.toString() === req.params.id && request.status === 'pending'
-  );
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
-  if (!friendRequest) {
-    return next(new ErrorResponse('No pending friend request found', 404));
+    // Find the friend request
+    const friendRequest = user.friendRequests.id(requestId);
+    if (!friendRequest) {
+      return res.status(404).json({
+        success: false,
+        error: 'Friend request not found'
+      });
+    }
+
+    // Update request status
+    friendRequest.status = 'rejected';
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
-
-  // Update request status
-  friendRequest.status = 'rejected';
-
-  await currentUser.save();
-
-  res.status(200).json({
-    success: true,
-    data: currentUser.friendRequests,
-  });
-});
+};
 
 // @desc    Get friend requests
 // @route   GET /api/users/friend-requests
@@ -496,4 +624,86 @@ exports.getFriendRequests = asyncHandler(async (req, res, next) => {
     success: true,
     data: user.friendRequests,
   });
-}); 
+});
+
+// @desc    Get user's posts
+// @route   GET /api/users/:id/posts
+// @access  Private
+exports.getUserPosts = async (req, res) => {
+  try {
+    const posts = await Post.find({ author: req.params.id })
+      .populate('author', 'username profilePicture')
+      .populate('likes', 'username')
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'author',
+          select: 'username profilePicture'
+        }
+      })
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      data: posts
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+// @desc    Cancel friend request
+// @route   DELETE /api/users/:id/friend-request
+// @access  Private
+exports.cancelFriendRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fromUserId = req.user._id;
+
+    console.log('Cancel friend request received:', {
+      targetUserId: id,
+      fromUserId,
+      body: req.body,
+      headers: req.headers,
+      user: req.user
+    });
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Find and remove the friend request
+    const requestIndex = user.friendRequests.findIndex(
+      request => request.from.toString() === fromUserId.toString() && request.status === 'pending'
+    );
+
+    if (requestIndex === -1) {
+      return res.status(400).json({
+        success: false,
+        error: 'No pending friend request found'
+      });
+    }
+
+    user.friendRequests.splice(requestIndex, 1);
+    await user.save();
+
+    return res.json({
+      success: true,
+      data: user,
+      message: 'Friend request cancelled successfully'
+    });
+  } catch (error) {
+    console.error('Error in cancelFriendRequest:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}; 

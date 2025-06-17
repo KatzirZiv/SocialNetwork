@@ -45,18 +45,28 @@ if (process.env.NODE_ENV === 'development') {
     console.log('=== Request Logging ===');
     console.log('Method:', req.method);
     console.log('Path:', req.path);
+    console.log('Original URL:', req.originalUrl);
+    console.log('Base URL:', req.baseUrl);
     console.log('Headers:', req.headers);
     console.log('Body:', req.body);
     console.log('Files:', req.file);
+    console.log('Route:', req.route);
+    console.log('Params:', req.params);
+    console.log('Query:', req.query);
     
     // Log the full request for debugging
     console.log('Full request:', {
       method: req.method,
       path: req.path,
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
       headers: req.headers,
       body: req.body,
       file: req.file,
-      files: req.files
+      files: req.files,
+      route: req.route,
+      params: req.params,
+      query: req.query
     });
     
     next();
@@ -84,22 +94,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Add logging for static file requests
-app.use('/uploads', (req, res, next) => {
-  console.log('=== Static File Request ===');
-  console.log('Request path:', req.path);
-  console.log('Request method:', req.method);
-  console.log('Request headers:', req.headers);
-  const filePath = path.join(__dirname, '../uploads', req.path);
-  console.log('Looking for file at:', filePath);
-  console.log('File exists:', fs.existsSync(filePath));
-  next();
-}, express.static(path.join(__dirname, '../uploads'), {
-  setHeaders: (res, path) => {
-    res.set('Access-Control-Allow-Origin', process.env.CLIENT_URL || 'http://localhost:3000');
-    res.set('Cache-Control', 'no-cache');
-  }
-}));
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Add a default profile picture route
 app.get('/default-profile.png', (req, res) => {

@@ -57,13 +57,17 @@ const userSchema = new mongoose.Schema(
     friendRequests: [
       {
         from: {
-          type: mongoose.Schema.Types.ObjectId,
+          type: mongoose.Schema.Types.Mixed, // Can be ObjectId or String for temporary IDs
           ref: 'User',
         },
         status: {
           type: String,
           enum: ['pending', 'accepted', 'rejected'],
           default: 'pending',
+        },
+        isTemporary: {
+          type: Boolean,
+          default: false,
         },
         createdAt: {
           type: Date,
