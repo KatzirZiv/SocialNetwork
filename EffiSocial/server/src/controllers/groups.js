@@ -324,4 +324,64 @@ exports.searchGroups = async (req, res) => {
       message: 'Server error'
     });
   }
+};
+
+// @desc    Invite member to group
+// @route   POST /api/groups/:id/invite
+// @access  Private
+exports.inviteMember = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const group = await Group.findById(req.params.id);
+    const user = await User.findById(userId);
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: 'Group not found'
+      });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is already a member
+    if (group.members.includes(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already a member of this group'
+      });
+    }
+
+    // Check if user is the admin
+    if (group.admin.toString() === userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already the admin of this group'
+      });
+    }
+
+    // Add user to group members
+    group.members.push(userId);
+    await group.save();
+
+    // Add group to user's groups
+    user.groups.push(group._id);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      data: group
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
 }; 
