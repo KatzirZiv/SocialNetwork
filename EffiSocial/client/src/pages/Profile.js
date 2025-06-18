@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from "react";
+import { useParams, Navigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Container,
   Box,
@@ -23,7 +23,7 @@ import {
   Tabs,
   Tab,
   Alert,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Edit as EditIcon,
   ThumbUp as ThumbUpIcon,
@@ -35,9 +35,9 @@ import {
   Image as ImageIcon,
   Close as CloseIcon,
   Cancel as CancelIcon,
-} from '@mui/icons-material';
-import { users, posts } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+} from "@mui/icons-material";
+import { users, posts } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const Profile = () => {
   const { id } = useParams();
@@ -45,143 +45,146 @@ const Profile = () => {
   const queryClient = useQueryClient();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
-    username: '',
-    bio: '',
+    username: "",
+    bio: "",
   });
   const [profilePicFile, setProfilePicFile] = useState(null);
-  const [profilePicPreview, setProfilePicPreview] = useState('');
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('');
+  const [profilePicPreview, setProfilePicPreview] = useState("");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
   const [commentTexts, setCommentTexts] = useState({});
   const [activeTab, setActiveTab] = useState(0);
-  const [newPost, setNewPost] = useState('');
+  const [newPost, setNewPost] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  const { data: profileData, isLoading: profileLoading, error: profileError } = useQuery({
-    queryKey: ['user', id],
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ["user", id],
     queryFn: () => users.getById(id),
     enabled: !!id,
   });
 
   const { data: userPosts, isLoading: postsLoading } = useQuery({
-    queryKey: ['userPosts', id],
+    queryKey: ["userPosts", id],
     queryFn: () => posts.getAll({ author: id }),
     onSuccess: (data) => {
-      console.log('Posts data received:', data);
-    }
+      console.log("Posts data received:", data);
+    },
   });
 
   const followMutation = useMutation({
     mutationFn: () => users.follow(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['user', id]);
+      queryClient.invalidateQueries(["user", id]);
     },
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: (data) => users.update(id, data),
     onSuccess: (response) => {
-      console.log('Profile updated successfully:', response);
-      console.log('Response data:', response.data);
-      console.log('Updated user data:', response.data.data);
-      
+      console.log("Profile updated successfully:", response);
+      console.log("Response data:", response.data);
+      console.log("Updated user data:", response.data.data);
+
       // Update the query cache with the new data
-      queryClient.setQueryData(['user', id], response.data);
-      
+      queryClient.setQueryData(["user", id], response.data);
+
       // Invalidate the query to ensure fresh data
-      queryClient.invalidateQueries(['user', id]);
-      
+      queryClient.invalidateQueries(["user", id]);
+
       setEditDialogOpen(false);
       // Reset the form
-      setEditForm({ username: '', bio: '' });
+      setEditForm({ username: "", bio: "" });
       setProfilePicFile(null);
-      setProfilePicPreview('');
-      setMessage('Profile updated successfully');
-      setMessageType('success');
+      setProfilePicPreview("");
+      setMessage("Profile updated successfully");
+      setMessageType("success");
     },
     onError: (error) => {
-      console.error('Error updating profile:', error);
-      console.error('Error details:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Error headers:', error.response?.headers);
-      setMessage(error.response?.data?.error || 'Error updating profile');
-      setMessageType('error');
+      console.error("Error updating profile:", error);
+      console.error("Error details:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("Error headers:", error.response?.headers);
+      setMessage(error.response?.data?.error || "Error updating profile");
+      setMessageType("error");
     },
   });
 
   const likePostMutation = useMutation({
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['userPosts', id]);
+      queryClient.invalidateQueries(["userPosts", id]);
     },
   });
 
   const sendFriendRequestMutation = useMutation({
     mutationFn: () => users.sendFriendRequest(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['user', id]);
-      setMessage('Friend request sent successfully');
-      setMessageType('success');
+      queryClient.invalidateQueries(["user", id]);
+      setMessage("Friend request sent successfully");
+      setMessageType("success");
     },
     onError: (error) => {
-      console.error('Error sending friend request:', error);
-      const errorMessage = error.response?.data?.error || 'Error sending friend request';
+      console.error("Error sending friend request:", error);
+      const errorMessage =
+        error.response?.data?.error || "Error sending friend request";
       setMessage(errorMessage);
-      setMessageType('error');
-      
+      setMessageType("error");
+
       // If the error is that users are already friends, update the UI state
-      if (errorMessage === 'Users are already friends') {
-        queryClient.invalidateQueries(['user', id]);
+      if (errorMessage === "Users are already friends") {
+        queryClient.invalidateQueries(["user", id]);
       }
-    }
+    },
   });
 
   const cancelFriendRequestMutation = useMutation({
     mutationFn: () => users.cancelFriendRequest(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['user', id]);
-      setMessage('Friend request cancelled successfully');
-      setMessageType('success');
+      queryClient.invalidateQueries(["user", id]);
+      setMessage("Friend request cancelled successfully");
+      setMessageType("success");
     },
     onError: (error) => {
-      console.error('Error cancelling friend request:', error);
-      setMessage(error.response?.data?.error || 'Error cancelling friend request');
-      setMessageType('error');
-    }
+      console.error("Error cancelling friend request:", error);
+      setMessage(
+        error.response?.data?.error || "Error cancelling friend request"
+      );
+      setMessageType("error");
+    },
   });
 
   const removeFriendMutation = useMutation({
     mutationFn: () => users.removeFriend(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['user', id]);
-      setMessage('Friend removed successfully');
-      setMessageType('success');
+      queryClient.invalidateQueries(["user", id]);
+      setMessage("Friend removed successfully");
+      setMessageType("success");
     },
     onError: (error) => {
-      console.error('Error removing friend:', error);
-      setMessage(error.response?.data?.error || 'Error removing friend');
-      setMessageType('error');
-    }
+      console.error("Error removing friend:", error);
+      setMessage(error.response?.data?.error || "Error removing friend");
+      setMessageType("error");
+    },
   });
 
   const addCommentMutation = useMutation({
     mutationFn: ({ postId, content }) => posts.addComment(postId, content),
     onSuccess: (response, variables) => {
-      queryClient.invalidateQueries(['userPosts', id]);
-      setCommentTexts((prev) => ({ ...prev, [variables.postId]: '' }));
+      queryClient.invalidateQueries(["userPosts", id]);
+      setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
     },
   });
 
   const createPostMutation = useMutation({
-    mutationFn: (formData) => posts.post('/posts', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
+    mutationFn: (formData) => posts.create(formData),
     onSuccess: () => {
-      queryClient.invalidateQueries(['userPosts', id]);
-      setNewPost('');
+      queryClient.invalidateQueries(["userPosts", id]);
+      setNewPost("");
       setImageFile(null);
       setImagePreview(null);
     },
@@ -191,9 +194,9 @@ const Profile = () => {
     if (profileData?.data) {
       setEditForm({
         username: profileData.data.username,
-        bio: profileData.data.bio || '',
+        bio: profileData.data.bio || "",
       });
-      setProfilePicPreview(profileData.data.profilePicture || '');
+      setProfilePicPreview(profileData.data.profilePicture || "");
       setProfilePicFile(null);
       setEditDialogOpen(true);
     }
@@ -213,49 +216,49 @@ const Profile = () => {
     e.preventDefault();
     try {
       const formData = new FormData();
-      
+
       // Add bio if it exists
       if (editForm.bio) {
-        formData.append('bio', editForm.bio);
-      }
-      
-      // Add profile picture if it exists
-      if (profilePicFile) {
-        formData.append('profilePicture', profilePicFile);
+        formData.append("bio", editForm.bio);
       }
 
-      console.log('FormData contents:');
+      // Add profile picture if it exists
+      if (profilePicFile) {
+        formData.append("profilePicture", profilePicFile);
+      }
+
+      console.log("FormData contents:");
       for (let [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
       }
 
-      console.log('Submitting request with data:', formData);
-      
+      console.log("Submitting request with data:", formData);
+
       const response = await updateProfileMutation.mutateAsync(formData);
-      console.log('Profile updated successfully:', response);
-      console.log('Response data:', response);
-      console.log('Updated user data:', response.data);
-      
+      console.log("Profile updated successfully:", response);
+      console.log("Response data:", response);
+      console.log("Updated user data:", response.data);
+
       // Update the query cache with the new data
-      queryClient.setQueryData(['user', id], response.data);
-      
+      queryClient.setQueryData(["user", id], response.data);
+
       // Invalidate the query to ensure fresh data
-      queryClient.invalidateQueries(['user', id]);
-      
+      queryClient.invalidateQueries(["user", id]);
+
       setEditDialogOpen(false);
       // Reset the form
-      setEditForm({ username: '', bio: '' });
+      setEditForm({ username: "", bio: "" });
       setProfilePicFile(null);
-      setProfilePicPreview('');
-      setMessage('Profile updated successfully');
-      setMessageType('success');
+      setProfilePicPreview("");
+      setMessage("Profile updated successfully");
+      setMessageType("success");
     } catch (error) {
-      console.error('Error updating profile:', error);
-      console.error('Error details:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Error headers:', error.response?.headers);
-      setMessage(error.response?.data?.error || 'Error updating profile');
-      setMessageType('error');
+      console.error("Error updating profile:", error);
+      console.error("Error details:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("Error headers:", error.response?.headers);
+      setMessage(error.response?.data?.error || "Error updating profile");
+      setMessageType("error");
     }
   };
 
@@ -274,16 +277,16 @@ const Profile = () => {
 
     const formData = new FormData();
     if (newPost.trim()) {
-      formData.append('content', newPost.trim());
+      formData.append("content", newPost.trim());
     }
     if (imageFile) {
-      formData.append('media', imageFile);
+      formData.append("media", imageFile);
     }
 
     try {
       await createPostMutation.mutateAsync(formData);
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error("Error creating post:", error);
     }
   };
 
@@ -306,7 +309,7 @@ const Profile = () => {
 
   if (profileLoading || postsLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
         <CircularProgress />
       </Box>
     );
@@ -336,21 +339,22 @@ const Profile = () => {
   const isFollowing = profileData.data.followers?.includes(currentUser?._id);
   const isFriend = profileData.data.friends?.includes(currentUser?._id);
   const hasPendingRequest = profileData.data.friendRequests?.some(
-    (request) => request.from === currentUser?._id && request.status === 'pending'
+    (request) =>
+      request.from === currentUser?._id && request.status === "pending"
   );
   const hasReceivedRequest = profileData.data.friendRequests?.some(
-    (request) => request.to === currentUser?._id && request.status === 'pending'
+    (request) => request.to === currentUser?._id && request.status === "pending"
   );
 
   // Ensure postsList is always an array
-  const postsList = Array.isArray(userPosts?.data?.data) 
-    ? userPosts.data.data 
-    : Array.isArray(userPosts?.data) 
-      ? userPosts.data 
-      : [];
+  const postsList = Array.isArray(userPosts?.data?.data)
+    ? userPosts.data.data
+    : Array.isArray(userPosts?.data)
+    ? userPosts.data
+    : [];
 
-  console.log('Processed postsList:', postsList);
-  console.log('Friend request status:', {
+  console.log("Processed postsList:", postsList);
+  console.log("Friend request status:", {
     isOwnProfile,
     isFriend,
     hasPendingRequest,
@@ -358,26 +362,32 @@ const Profile = () => {
     friendRequests: profileData.data.friendRequests,
     currentUserId: currentUser?._id,
     profileId: id,
-    friends: profileData.data.friends
+    friends: profileData.data.friends,
   });
 
   return (
     <Container maxWidth="md">
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           <Avatar
-            src={profileData?.data?.data?.profilePicture ? `http://localhost:5000${profileData.data.data.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
+            src={
+              profileData?.data?.data?.profilePicture
+                ? `http://localhost:5000${
+                    profileData.data.data.profilePicture
+                  }?t=${Date.now()}`
+                : `http://localhost:5000/default-profile.png?t=${Date.now()}`
+            }
             alt={profileData?.data?.data?.username}
             sx={{ width: 120, height: 120, mb: 2 }}
             onError={(e) => {
-              console.error('Error loading profile picture:', e);
-              console.log('Failed to load image:', e.target.src);
-              console.log('Profile data:', profileData);
+              console.error("Error loading profile picture:", e);
+              console.log("Failed to load image:", e.target.src);
+              console.log("Profile data:", profileData);
               e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
             }}
             onLoad={(e) => {
-              console.log('Profile picture loaded successfully:', e.target.src);
-              console.log('Profile data:', profileData);
+              console.log("Profile picture loaded successfully:", e.target.src);
+              console.log("Profile data:", profileData);
             }}
           />
           <Box sx={{ flexGrow: 1, ml: 3 }}>
@@ -385,17 +395,19 @@ const Profile = () => {
               {profileData?.data?.data?.username}
             </Typography>
             <Typography variant="body1" color="text.secondary" gutterBottom>
-              {profileData?.data?.data?.bio || 'No bio yet'}
+              {profileData?.data?.data?.bio || "No bio yet"}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 2 }}>
               <Typography variant="body2">
                 <strong>{profileData.data.friends?.length || 0}</strong> friends
               </Typography>
               <Typography variant="body2">
-                <strong>{profileData.data.followers?.length || 0}</strong> followers
+                <strong>{profileData.data.followers?.length || 0}</strong>{" "}
+                followers
               </Typography>
               <Typography variant="body2">
-                <strong>{profileData.data.following?.length || 0}</strong> following
+                <strong>{profileData.data.following?.length || 0}</strong>{" "}
+                following
               </Typography>
             </Box>
           </Box>
@@ -405,10 +417,10 @@ const Profile = () => {
               startIcon={<EditIcon />}
               onClick={handleEditProfile}
               sx={{
-                borderRadius: '20px',
-                textTransform: 'none',
+                borderRadius: "20px",
+                textTransform: "none",
                 fontWeight: 500,
-                px: 3
+                px: 3,
               }}
             >
               Edit Profile
@@ -423,10 +435,10 @@ const Profile = () => {
                   disabled={removeFriendMutation.isLoading}
                   color="error"
                   sx={{
-                    borderRadius: '20px',
-                    textTransform: 'none',
+                    borderRadius: "20px",
+                    textTransform: "none",
                     fontWeight: 500,
-                    px: 3
+                    px: 3,
                   }}
                 >
                   Remove Friend
@@ -439,10 +451,10 @@ const Profile = () => {
                   disabled={cancelFriendRequestMutation.isLoading}
                   color="error"
                   sx={{
-                    borderRadius: '20px',
-                    textTransform: 'none',
+                    borderRadius: "20px",
+                    textTransform: "none",
                     fontWeight: 500,
-                    px: 3
+                    px: 3,
                   }}
                 >
                   Cancel Request
@@ -451,13 +463,15 @@ const Profile = () => {
                 <Button
                   variant="outlined"
                   startIcon={<PersonAddIcon />}
-                  onClick={() => {/* TODO: Implement accept/reject friend request */}}
+                  onClick={() => {
+                    /* TODO: Implement accept/reject friend request */
+                  }}
                   color="primary"
                   sx={{
-                    borderRadius: '20px',
-                    textTransform: 'none',
+                    borderRadius: "20px",
+                    textTransform: "none",
                     fontWeight: 500,
-                    px: 3
+                    px: 3,
                   }}
                 >
                   Respond to Request
@@ -470,10 +484,10 @@ const Profile = () => {
                   disabled={sendFriendRequestMutation.isLoading}
                   color="primary"
                   sx={{
-                    borderRadius: '20px',
-                    textTransform: 'none',
+                    borderRadius: "20px",
+                    textTransform: "none",
                     fontWeight: 500,
-                    px: 3
+                    px: 3,
                   }}
                 >
                   Add Friend
@@ -507,12 +521,12 @@ const Profile = () => {
                   onChange={(e) => setNewPost(e.target.value)}
                   sx={{ mb: 2 }}
                 />
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                     id="image-upload"
                   />
                   <label htmlFor="image-upload">
@@ -526,13 +540,13 @@ const Profile = () => {
                     </Button>
                   </label>
                   {imagePreview && (
-                    <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                    <Box sx={{ position: "relative", display: "inline-block" }}>
                       <img
                         src={imagePreview}
                         alt="Preview"
                         style={{
-                          maxHeight: '100px',
-                          borderRadius: '4px',
+                          maxHeight: "100px",
+                          borderRadius: "4px",
                         }}
                       />
                       <IconButton
@@ -542,10 +556,10 @@ const Profile = () => {
                           setImagePreview(null);
                         }}
                         sx={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: -8,
                           right: -8,
-                          bgcolor: 'background.paper',
+                          bgcolor: "background.paper",
                         }}
                       >
                         <CloseIcon fontSize="small" />
@@ -556,9 +570,12 @@ const Profile = () => {
                 <Button
                   variant="contained"
                   type="submit"
-                  disabled={(!newPost.trim() && !imageFile) || createPostMutation.isLoading}
+                  disabled={
+                    (!newPost.trim() && !imageFile) ||
+                    createPostMutation.isLoading
+                  }
                 >
-                  {createPostMutation.isLoading ? 'Posting...' : 'Post'}
+                  {createPostMutation.isLoading ? "Posting..." : "Post"}
                 </Button>
               </Box>
             </Paper>
@@ -577,14 +594,20 @@ const Profile = () => {
           ) : (
             <Grid container spacing={3}>
               {postsList.map((post) => {
-                console.log('Rendering post:', post);
+                console.log("Rendering post:", post);
                 return (
                   <Grid item xs={12} key={post._id}>
                     <Card>
                       <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 2 }}
+                        >
                           <Avatar
-                            src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : `http://localhost:5000/default-profile.png`}
+                            src={
+                              post.author?.profilePicture
+                                ? `http://localhost:5000${post.author.profilePicture}`
+                                : `http://localhost:5000/default-profile.png`
+                            }
                             alt={post.author?.username}
                             sx={{ mr: 2 }}
                             onError={(e) => {
@@ -595,7 +618,10 @@ const Profile = () => {
                             <Typography variant="subtitle1">
                               {post.author?.username}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {new Date(post.createdAt).toLocaleString()}
                             </Typography>
                           </Box>
@@ -609,18 +635,21 @@ const Profile = () => {
                             src={`http://localhost:5000${post.media}`}
                             alt="Post media"
                             sx={{
-                              width: '100%',
+                              width: "100%",
                               maxHeight: 400,
-                              objectFit: 'cover',
+                              objectFit: "cover",
                               borderRadius: 1,
                             }}
                             onError={(e) => {
-                              console.error('Error loading image:', e);
-                              console.log('Failed image path:', e.target.src);
+                              console.error("Error loading image:", e);
+                              console.log("Failed image path:", e.target.src);
                               e.target.src = `http://localhost:5000/default-post.png`;
                             }}
                             onLoad={(e) => {
-                              console.log('Successfully loaded image:', e.target.src);
+                              console.log(
+                                "Successfully loaded image:",
+                                e.target.src
+                              );
                             }}
                           />
                         )}
@@ -630,9 +659,22 @@ const Profile = () => {
                               Comments
                             </Typography>
                             {post.comments.map((comment) => (
-                              <Box key={comment._id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <Box
+                                key={comment._id}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mb: 1,
+                                }}
+                              >
                                 <Avatar
-                                  src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
+                                  src={
+                                    comment.author?.profilePicture
+                                      ? `http://localhost:5000${
+                                          comment.author.profilePicture
+                                        }?t=${Date.now()}`
+                                      : `http://localhost:5000/default-profile.png?t=${Date.now()}`
+                                  }
                                   alt={comment.author?.username}
                                   sx={{ mr: 1, width: 24, height: 24 }}
                                   onError={(e) => {
@@ -641,10 +683,16 @@ const Profile = () => {
                                 />
                                 <Box>
                                   <Typography variant="body2">
-                                    <strong>{comment.author?.username}</strong> {comment.content}
+                                    <strong>{comment.author?.username}</strong>{" "}
+                                    {comment.content}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {new Date(comment.createdAt).toLocaleString()}
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {new Date(
+                                      comment.createdAt
+                                    ).toLocaleString()}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -656,7 +704,11 @@ const Profile = () => {
                       <CardActions>
                         <IconButton
                           onClick={() => handleLike(post._id)}
-                          color={post.likes?.includes(currentUser?._id) ? 'primary' : 'default'}
+                          color={
+                            post.likes?.includes(currentUser?._id)
+                              ? "primary"
+                              : "default"
+                          }
                         >
                           {post.likes?.includes(currentUser?._id) ? (
                             <ThumbUpIcon />
@@ -681,14 +733,22 @@ const Profile = () => {
                         <TextField
                           fullWidth
                           placeholder="Write a comment..."
-                          value={commentTexts[post._id] || ''}
-                          onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
+                          value={commentTexts[post._id] || ""}
+                          onChange={(e) =>
+                            setCommentTexts({
+                              ...commentTexts,
+                              [post._id]: e.target.value,
+                            })
+                          }
                           sx={{ mb: 1 }}
                         />
                         <Button
                           variant="contained"
                           onClick={() => handleCommentSubmit(post._id)}
-                          disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
+                          disabled={
+                            !commentTexts[post._id]?.trim() ||
+                            addCommentMutation.isLoading
+                          }
                         >
                           Comment
                         </Button>
@@ -708,14 +768,16 @@ const Profile = () => {
             About {profileData?.data?.data?.username}
           </Typography>
           <Typography variant="body1" paragraph>
-            {profileData?.data?.data?.bio || 'No bio available'}
+            {profileData?.data?.data?.bio || "No bio available"}
           </Typography>
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle1" gutterBottom>
               Member Since
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {new Date(profileData?.data?.data?.createdAt).toLocaleDateString()}
+              {new Date(
+                profileData?.data?.data?.createdAt
+              ).toLocaleDateString()}
             </Typography>
           </Box>
         </Paper>
@@ -724,11 +786,26 @@ const Profile = () => {
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
         <DialogTitle>Edit Profile</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
-            <Avatar src={profilePicPreview} sx={{ width: 80, height: 80, mb: 2 }} />
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Avatar
+              src={profilePicPreview}
+              sx={{ width: 80, height: 80, mb: 2 }}
+            />
             <Button variant="outlined" component="label">
               Change Picture
-              <input type="file" accept="image/*" hidden onChange={handleProfilePicChange} />
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleProfilePicChange}
+              />
             </Button>
           </Box>
           <TextField
@@ -743,11 +820,13 @@ const Profile = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleUpdateProfile} variant="contained">Save</Button>
+          <Button onClick={handleUpdateProfile} variant="contained">
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
   );
 };
 
-export default Profile; 
+export default Profile;

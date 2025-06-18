@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Container,
   Box,
@@ -29,7 +29,7 @@ import {
   Chip,
   Alert,
   Autocomplete,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -40,9 +40,9 @@ import {
   Person as PersonIcon,
   Group as GroupIcon,
   PersonAdd as PersonAddIcon,
-} from '@mui/icons-material';
-import { groups, posts, users } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+} from "@mui/icons-material";
+import { groups, posts, users } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const Group = () => {
   const { id } = useParams();
@@ -51,28 +51,38 @@ const Group = () => {
   const queryClient = useQueryClient();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [newPost, setNewPost] = useState('');
+  const [newPost, setNewPost] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [editForm, setEditForm] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
   });
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
-  const { data: groupData, isLoading: groupLoading, error: groupError } = useQuery({
-    queryKey: ['group', id],
+  const {
+    data: groupData,
+    isLoading: groupLoading,
+    error: groupError,
+  } = useQuery({
+    queryKey: ["group", id],
     queryFn: () => groups.getById(id),
   });
 
-  const { data: groupPosts, isLoading: postsLoading, error: postsError } = useQuery({
-    queryKey: ['groupPosts', id],
+  const {
+    data: groupPosts,
+    isLoading: postsLoading,
+    error: postsError,
+  } = useQuery({
+    queryKey: ["groupPosts", id],
     queryFn: () => posts.getAll({ group: id }),
   });
 
   const { data: friendsData, isLoading: friendsLoading } = useQuery({
-    queryKey: ['friends', currentUser?._id],
+    queryKey: ["friends", currentUser?._id],
     queryFn: () => users.getFriends(currentUser?._id),
     enabled: !!currentUser?._id,
   });
@@ -80,21 +90,21 @@ const Group = () => {
   const joinGroupMutation = useMutation({
     mutationFn: () => groups.join(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['group', id]);
+      queryClient.invalidateQueries(["group", id]);
     },
   });
 
   const leaveGroupMutation = useMutation({
     mutationFn: () => groups.leave(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['group', id]);
+      queryClient.invalidateQueries(["group", id]);
     },
   });
 
   const updateGroupMutation = useMutation({
     mutationFn: (data) => groups.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['group', id]);
+      queryClient.invalidateQueries(["group", id]);
       setEditDialogOpen(false);
     },
   });
@@ -102,29 +112,31 @@ const Group = () => {
   const deleteGroupMutation = useMutation({
     mutationFn: () => groups.delete(id),
     onSuccess: () => {
-      navigate('/groups');
+      navigate("/groups");
     },
   });
 
   const createPostMutation = useMutation({
-    mutationFn: (content) => posts.create({ content, group: id }),
+    mutationFn: (formData) => posts.create(formData),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
-      setNewPost('');
+      queryClient.invalidateQueries(["groupPosts", id]);
+      setNewPost("");
+      setImageFile(null);
+      setImagePreview(null);
     },
   });
 
   const likePostMutation = useMutation({
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
+      queryClient.invalidateQueries(["groupPosts", id]);
     },
   });
 
   const inviteMemberMutation = useMutation({
     mutationFn: ({ groupId, userId }) => groups.invite(groupId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['group', id]);
+      queryClient.invalidateQueries(["group", id]);
       setInviteDialogOpen(false);
       setSelectedFriend(null);
     },
@@ -134,7 +146,7 @@ const Group = () => {
     if (groupData?.data?.data) {
       setEditForm({
         name: groupData.data.data.name,
-        description: groupData.data.data.description || '',
+        description: groupData.data.data.description || "",
       });
       setEditDialogOpen(true);
     }
@@ -150,9 +162,14 @@ const Group = () => {
 
   const handleCreatePost = (e) => {
     e.preventDefault();
-    if (newPost.trim()) {
-      createPostMutation.mutate(newPost);
+    if (!newPost.trim() && !imageFile) return;
+    const formData = new FormData();
+    formData.append("content", newPost);
+    formData.append("group", id);
+    if (imageFile) {
+      formData.append("media", imageFile);
     }
+    createPostMutation.mutate(formData);
   };
 
   const handleLike = (postId) => {
@@ -165,11 +182,28 @@ const Group = () => {
     }
   };
 
-  const filteredFriends = friendsData?.data?.data?.filter(friend => {
-    const isNotMember = !group?.members?.some(member => member._id === friend._id);
-    const matchesSearch = friend.username.toLowerCase().includes(searchQuery.toLowerCase());
-    return isNotMember && matchesSearch;
-  }) || [];
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const filteredFriends =
+    friendsData?.data?.data?.filter((friend) => {
+      const isNotMember = !group?.members?.some(
+        (member) => member._id === friend._id
+      );
+      const matchesSearch = friend.username
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      return isNotMember && matchesSearch;
+    }) || [];
 
   const isAdmin = groupData?.data?.data?.admin?._id === currentUser?._id;
   const isMember = groupData?.data?.data?.members?.some(
@@ -178,7 +212,12 @@ const Group = () => {
 
   if (groupLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="60vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -208,15 +247,22 @@ const Group = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper sx={{ p: 3, mb: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            mb: 3,
+          }}
+        >
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
               {group.name}
             </Typography>
             <Typography color="text.secondary" paragraph>
-              {group.description || 'No description provided'}
+              {group.description || "No description provided"}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Chip
                 icon={<GroupIcon />}
                 label={`${group.members?.length || 0} members`}
@@ -224,7 +270,7 @@ const Group = () => {
               />
               <Chip
                 icon={<PersonIcon />}
-                label={`Admin: ${group.admin?.username || 'Unknown'}`}
+                label={`Admin: ${group.admin?.username || "Unknown"}`}
                 variant="outlined"
               />
             </Box>
@@ -235,7 +281,10 @@ const Group = () => {
                 <IconButton onClick={handleEditGroup} sx={{ mr: 1 }}>
                   <EditIcon />
                 </IconButton>
-                <IconButton onClick={() => setDeleteDialogOpen(true)} color="error">
+                <IconButton
+                  onClick={() => setDeleteDialogOpen(true)}
+                  color="error"
+                >
                   <DeleteIcon />
                 </IconButton>
               </>
@@ -296,10 +345,34 @@ const Group = () => {
                   onChange={(e) => setNewPost(e.target.value)}
                   sx={{ mb: 2 }}
                 />
+                <input
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  id="group-post-image-upload"
+                  type="file"
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="group-post-image-upload">
+                  <Button variant="outlined" component="span" sx={{ mr: 2 }}>
+                    Upload Image
+                  </Button>
+                </label>
+                {imagePreview && (
+                  <Box sx={{ mb: 2 }}>
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{ maxWidth: 200, borderRadius: 8 }}
+                    />
+                  </Box>
+                )}
                 <Button
                   variant="contained"
                   type="submit"
-                  disabled={!newPost.trim() || createPostMutation.isLoading}
+                  disabled={
+                    (!newPost.trim() && !imageFile) ||
+                    createPostMutation.isLoading
+                  }
                 >
                   Post
                 </Button>
@@ -325,7 +398,9 @@ const Group = () => {
                 <Grid item xs={12} key={post._id}>
                   <Card>
                     <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 2 }}
+                      >
                         <Avatar
                           src={post.author?.profilePicture}
                           alt={post.author?.username}
@@ -346,7 +421,7 @@ const Group = () => {
                           <img
                             src={post.media}
                             alt="Post media"
-                            style={{ maxWidth: '100%', borderRadius: 8 }}
+                            style={{ maxWidth: "100%", borderRadius: 8 }}
                           />
                         </Box>
                       )}
@@ -355,7 +430,11 @@ const Group = () => {
                     <CardActions>
                       <IconButton
                         onClick={() => handleLike(post._id)}
-                        color={post.likes?.includes(currentUser?._id) ? 'primary' : 'default'}
+                        color={
+                          post.likes?.includes(currentUser?._id)
+                            ? "primary"
+                            : "default"
+                        }
                       >
                         {post.likes?.includes(currentUser?._id) ? (
                           <ThumbUpIcon />
@@ -404,7 +483,9 @@ const Group = () => {
                   </ListItemAvatar>
                   <ListItemText
                     primary={member.username}
-                    secondary={member._id === group.admin?._id ? 'Group Admin' : 'Member'}
+                    secondary={
+                      member._id === group.admin?._id ? "Group Admin" : "Member"
+                    }
                   />
                 </ListItem>
               ))}
@@ -449,11 +530,15 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Delete Group</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete this group? This action cannot be undone.
+            Are you sure you want to delete this group? This action cannot be
+            undone.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -469,7 +554,10 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={inviteDialogOpen} onClose={() => setInviteDialogOpen(false)}>
+      <Dialog
+        open={inviteDialogOpen}
+        onClose={() => setInviteDialogOpen(false)}
+      >
         <DialogTitle>Invite Friends to Group</DialogTitle>
         <DialogContent>
           <Autocomplete
@@ -514,4 +602,4 @@ const Group = () => {
   );
 };
 
-export default Group; 
+export default Group;
