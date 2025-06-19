@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Navigate, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -39,6 +39,7 @@ import {
 } from "@mui/icons-material";
 import { users, posts } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import PostMenu from '../components/PostMenu';
 
 const Profile = () => {
   const { id } = useParams();
@@ -67,6 +68,7 @@ const Profile = () => {
   const [editPostContent, setEditPostContent] = useState('');
   const [editCommentContent, setEditCommentContent] = useState('');
   const navigate = useNavigate();
+  const [optimisticLikes, setOptimisticLikes] = useState({});
 
   const {
     data: profileData,
@@ -311,7 +313,23 @@ const Profile = () => {
   };
 
   const handleLike = (postId) => {
-    likePostMutation.mutate(postId);
+    setOptimisticLikes((prev) => {
+      const post = postsList.find((p) => p._id === postId);
+      if (!post) return prev;
+      const liked = post.likes.includes(currentUser?._id) || (prev[postId] && prev[postId].liked);
+      return {
+        ...prev,
+        [postId]: { liked: !liked }
+      };
+    });
+    likePostMutation.mutate(postId, {
+      onError: () => {
+        setOptimisticLikes((prev) => {
+          const { [postId]: _, ...rest } = prev;
+          return rest;
+        });
+      },
+    });
   };
 
   const handleCommentSubmit = (postId) => {
@@ -349,6 +367,12 @@ const Profile = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  useEffect(() => {
+    if (editPostDialogOpen && editingPost) {
+      setEditPostContent(editingPost.content || '');
+    }
+  }, [editPostDialogOpen, editingPost]);
 
   // Redirect if no user ID
   if (!id) {
@@ -695,14 +719,10 @@ const Profile = () => {
                             </Typography>
                           </Box>
                           {(currentUser?._id === post.author?._id || currentUser?.role === 'admin') && (
-                            <>
-                              <IconButton size="small" onClick={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}>
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton size="small" color="error" onClick={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}>
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </>
+                            <PostMenu
+                              onEdit={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}
+                              onDelete={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}
+                            />
                           )}
                         </Box>
                         <Typography variant="body1" sx={{ mb: 2 }}>
@@ -794,16 +814,19 @@ const Profile = () => {
                       <CardActions>
                         <IconButton
                           onClick={() => handleLike(post._id)}
-                          color={
-                            post.likes?.includes(currentUser?._id)
-                              ? "primary"
-                              : "default"
-                          }
+                          color={((optimisticLikes[post._id]?.liked !== undefined
+                            ? optimisticLikes[post._id].liked
+                            : post.likes?.includes(currentUser?._id))
+                            ? 'primary'
+                            : 'default')}
+                          size="small"
                         >
-                          {post.likes?.includes(currentUser?._id) ? (
-                            <ThumbUpIcon />
+                          {(optimisticLikes[post._id]?.liked !== undefined
+                            ? optimisticLikes[post._id].liked
+                            : post.likes?.includes(currentUser?._id)) ? (
+                            <ThumbUpIcon fontSize="small" />
                           ) : (
-                            <ThumbUpOutlinedIcon />
+                            <ThumbUpOutlinedIcon fontSize="small" />
                           )}
                         </IconButton>
                         <Typography variant="body2" color="text.secondary">
