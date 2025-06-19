@@ -68,15 +68,13 @@ const Home = () => {
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],
     queryFn: () => posts.getAll(),
-    // onSuccess: (data) => {
-    //   console.log('Posts updated after comment:', data);
-    // },
   });
 
   const { data: groupsData, isLoading: groupsLoading } = useQuery({
     queryKey: ['groups'],
     queryFn: () => groups.getAll(),
   });
+  console.log('DEBUG groupsData:', groupsData);
 
   const createPostMutation = useMutation({
     mutationFn: (postData) => posts.create(postData),
@@ -159,20 +157,7 @@ const Home = () => {
       formData.append('group', selectedGroup);
     }
 
-    // console.log('Submitting post with data:', {
-    //   content: newPost,
-    //   group: selectedGroup,
-    //   imageFile: imageFile ? imageFile.name : null,
-    // });
-
-    createPostMutation.mutate(formData, {
-      onSuccess: (response) => {
-        // console.log('Post created successfully:', response);
-      },
-      onError: (error) => {
-        // console.error('Error creating post:', error);
-      },
-    });
+    createPostMutation.mutate(formData);
   };
 
   const handleImageChange = (e) => {
@@ -217,7 +202,6 @@ const Home = () => {
 
   const handleCommentSubmit = (postId) => {
     if (!commentTexts[postId]?.trim()) return;
-    // console.log('Submitting comment:', { postId, content: commentTexts[postId] });
     addCommentMutation.mutate({ postId, content: commentTexts[postId] });
   };
 
@@ -229,9 +213,9 @@ const Home = () => {
     );
   }
 
-  const groupsList = Array.isArray(groupsData?.data) ? groupsData.data : [];
+  const groupsList = Array.isArray(groupsData?.data?.data) ? groupsData.data.data : [];
+  console.log('DEBUG groupsList:', groupsList);
   const postsList = Array.isArray(postsData?.data?.data) ? postsData.data.data : [];
-
 
   return (
     <Container maxWidth="lg">
@@ -314,203 +298,174 @@ const Home = () => {
           </Paper>
 
           <Grid container spacing={3}>
-            {postsList.map((post) => (
-              <Grid columns={12} key={post._id}>
-                <Card sx={{ mb: 2, boxShadow: 3, '&:hover': { boxShadow: 6 } }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Avatar
-                        src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
-                        alt={post.author?.username}
-                        sx={{ mr: 2 }}
-                        onError={(e) => {
-                          e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
-                        }}
-                      />
-                      <Box>
-                        <Typography variant="subtitle1">
-                          <Link to={`/profile/${post.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
-                            {post.author?.username}
-                          </Link>
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(post.createdAt).toLocaleString()}
-                        </Typography>
-                        {post.group && (
-                          <Box sx={{ mt: 0.5 }}>
-                            <Chip
-                              label={`Group: ${post.group?.name || 'Unknown'}`}
-                              color="primary"
-                              size="small"
-                              sx={{ mt: 0.5 }}
-                            />
-                          </Box>
+            {postsList.map((post) => {
+              // Find the group object for group posts
+              const groupObj = post.group ? groupsList.find(g => g._id === post.group._id) : null;
+              const isGroupAdmin = groupObj && groupObj.admin && groupObj.admin._id === user?._id;
+              if (post.group) {
+                console.log('DEBUG group post:', {
+                  postId: post._id,
+                  postGroup: post.group,
+                  groupObj,
+                  isGroupAdmin,
+                  userId: user?._id
+                });
+              }
+              return (
+                <Grid columns={12} key={post._id}>
+                  <Card sx={{ mb: 2, boxShadow: 3, '&:hover': { boxShadow: 6 } }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Avatar
+                          src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
+                          alt={post.author?.username}
+                          sx={{ mr: 2 }}
+                          onError={(e) => {
+                            e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
+                          }}
+                        />
+                        <Box>
+                          <Typography variant="subtitle1">
+                            <Link to={`/profile/${post.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                              {post.author?.username}
+                            </Link>
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(post.createdAt).toLocaleString()}
+                          </Typography>
+                          {post.group && (
+                            <Box sx={{ mt: 0.5 }}>
+                              <Chip
+                                label={`Group: ${post.group?.name || 'Unknown'}`}
+                                color="primary"
+                                size="small"
+                                sx={{ mt: 0.5 }}
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                        {(user?._id === post.author?._id || user?.role === 'admin' || isGroupAdmin) && (
+                          <>
+                            <IconButton size="small" onClick={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </>
                         )}
                       </Box>
-                      {(user?._id === post.author?._id || user?.role === 'admin') && (
-                        <>
-                          <IconButton size="small" onClick={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </>
+                      <Typography variant="body1" sx={{ mb: 2 }}>
+                        {post.content}
+                      </Typography>
+                      {post.media && (
+                        <Box
+                          component="img"
+                          src={`http://localhost:5000${post.media}`}
+                          alt="Post media"
+                          sx={{
+                            width: '100%',
+                            maxHeight: 400,
+                            objectFit: 'cover',
+                            borderRadius: 1,
+                          }}
+                          onError={(e) => {
+                            console.error('Error loading image:', e);
+                            e.target.style.display = 'none';
+                          }}
+                        />
                       )}
-                    </Box>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {post.content}
-                    </Typography>
-                    {post.media && (
-                      <Box
-                        component="img"
-                        src={`http://localhost:5000${post.media}`}
-                        alt="Post media"
-                        sx={{
-                          width: '100%',
-                          maxHeight: 400,
-                          objectFit: 'cover',
-                          borderRadius: 1,
-                        }}
-                        onError={(e) => {
-                          console.error('Error loading image:', e);
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    {post.comments && post.comments.length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Comments
-                        </Typography>
-                        {post.comments.map((comment) => (
-                          <Box key={comment._id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                            <Avatar
-                              src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
-                              alt={comment.author?.username}
-                              sx={{ mr: 1, width: 24, height: 24 }}
-                              onError={(e) => {
-                                e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
-                              }}
-                            />
-                            <Box>
-                              <Typography variant="body2">
-                                <Link to={`/profile/${comment.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
-                                  <strong>{comment.author?.username}</strong>
-                                </Link> {comment.content}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {new Date(comment.createdAt).toLocaleString()}
-                              </Typography>
+                      {post.comments && post.comments.length > 0 && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Comments
+                          </Typography>
+                          {post.comments.map((comment) => (
+                            <Box key={comment._id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <Avatar
+                                src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
+                                alt={comment.author?.username}
+                                sx={{ mr: 1, width: 24, height: 24 }}
+                                onError={(e) => {
+                                  e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
+                                }}
+                              />
+                              <Box>
+                                <Typography variant="body2">
+                                  <Link to={`/profile/${comment.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                                    <strong>{comment.author?.username}</strong>
+                                  </Link> {comment.content}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(comment.createdAt).toLocaleString()}
+                                </Typography>
+                              </Box>
+                              {(user?._id === comment.author?._id || user?.role === 'admin') && (
+                                <>
+                                  <IconButton size="small" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton size="small" color="error" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}>
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </>
+                              )}
                             </Box>
-                            {(user?._id === comment.author?._id || user?.role === 'admin') && (
-                              <>
-                                <IconButton size="small" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" color="error" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}>
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </>
-                            )}
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                  </CardContent>
-                  <Divider />
-                  <CardActions>
-                    <IconButton
-                      onClick={() => handleLike(post._id)}
-                      color={post.likes?.includes(user?._id) ? 'primary' : 'default'}
-                    >
-                      {post.likes?.includes(user?._id) ? (
-                        <ThumbUpIcon />
-                      ) : (
-                        <ThumbUpOutlinedIcon />
+                          ))}
+                        </Box>
                       )}
-                    </IconButton>
-                    <Typography variant="body2" color="text.secondary">
-                      {post.likes?.length || 0}
-                    </Typography>
-                    <IconButton>
-                      <CommentIcon />
-                    </IconButton>
-                    <Typography variant="body2" color="text.secondary">
-                      {post.comments?.length || 0}
-                    </Typography>
-                    <IconButton>
-                      <ShareIcon />
-                    </IconButton>
-                  </CardActions>
-                  <Box sx={{ p: 2 }}>
-                    <TextField
-                      fullWidth
-                      placeholder="Write a comment..."
-                      value={commentTexts[post._id] || ''}
-                      onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
-                      sx={{ mb: 1 }}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={() => handleCommentSubmit(post._id)}
-                      disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
-                    >
-                      Comment
-                    </Button>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
+                    </CardContent>
+                    <Divider />
+                    <CardActions>
+                      <IconButton
+                        onClick={() => handleLike(post._id)}
+                        color={post.likes?.includes(user?._id) ? 'primary' : 'default'}
+                      >
+                        {post.likes?.includes(user?._id) ? (
+                          <ThumbUpIcon />
+                        ) : (
+                          <ThumbUpOutlinedIcon />
+                        )}
+                      </IconButton>
+                      <Typography variant="body2" color="text.secondary">
+                        {post.likes?.length || 0}
+                      </Typography>
+                      <IconButton>
+                        <CommentIcon />
+                      </IconButton>
+                      <Typography variant="body2" color="text.secondary">
+                        {post.comments?.length || 0}
+                      </Typography>
+                      <IconButton>
+                        <ShareIcon />
+                      </IconButton>
+                    </CardActions>
+                    <Box sx={{ p: 2 }}>
+                      <TextField
+                        fullWidth
+                        placeholder="Write a comment..."
+                        value={commentTexts[post._id] || ''}
+                        onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
+                        sx={{ mb: 1 }}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={() => handleCommentSubmit(post._id)}
+                        disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
+                      >
+                        Comment
+                      </Button>
+                    </Box>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         </Grid>
         <Grid columns={12} md={4}>
           <FriendsList />
         </Grid>
       </Grid>
-
-      <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)}>
-        <DialogTitle>Choose a Group</DialogTitle>
-        <DialogContent>
-          <List>
-            {groupsList.map((group) => (
-              <ListItem button key={group._id} onClick={() => handleGroupSelect(group._id)}>
-                <ListItemText primary={group.name} />
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setGroupDialogOpen(false)}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Edit Post Dialog */}
-      <Dialog open={editPostDialogOpen} onClose={() => setEditPostDialogOpen(false)}>
-        <DialogTitle>Edit Post</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            value={editPostContent}
-            onChange={(e) => setEditPostContent(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditPostDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => updatePostMutation.mutate({ postId: editingPost._id, content: editPostContent })}
-            disabled={updatePostMutation.isLoading || !editPostContent.trim()}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Post Confirmation Dialog */}
       <Dialog open={deletePostDialogOpen} onClose={() => setDeletePostDialogOpen(false)}>
         <DialogTitle>Delete Post</DialogTitle>
         <DialogContent>
@@ -528,52 +483,8 @@ const Home = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Edit Comment Dialog */}
-      <Dialog open={editCommentDialogOpen} onClose={() => setEditCommentDialogOpen(false)}>
-        <DialogTitle>Edit Comment</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            value={editCommentContent}
-            onChange={(e) => setEditCommentContent(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditCommentDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() => updateCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent })}
-            disabled={updateCommentMutation.isLoading || !editCommentContent.trim()}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Comment Confirmation Dialog */}
-      <Dialog open={deleteCommentDialogOpen} onClose={() => setDeleteCommentDialogOpen(false)}>
-        <DialogTitle>Delete Comment</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this comment?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteCommentDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => deleteCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id })}
-            disabled={deleteCommentMutation.isLoading}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 };
 
-export default Home; 
+export default Home;
