@@ -35,6 +35,7 @@ import {
   Image as ImageIcon,
   Close as CloseIcon,
   Cancel as CancelIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { users, posts } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -57,6 +58,14 @@ const Profile = () => {
   const [newPost, setNewPost] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [editPostDialogOpen, setEditPostDialogOpen] = useState(false);
+  const [editCommentDialogOpen, setEditCommentDialogOpen] = useState(false);
+  const [deletePostDialogOpen, setDeletePostDialogOpen] = useState(false);
+  const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editingComment, setEditingComment] = useState(null);
+  const [editPostContent, setEditPostContent] = useState('');
+  const [editCommentContent, setEditCommentContent] = useState('');
 
   const {
     data: profileData,
@@ -187,6 +196,44 @@ const Profile = () => {
       setNewPost("");
       setImageFile(null);
       setImagePreview(null);
+    },
+  });
+
+  const updatePostMutation = useMutation({
+    mutationFn: ({ postId, content }) => posts.update(postId, { content }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userPosts', id]);
+      setEditPostDialogOpen(false);
+      setEditingPost(null);
+      setEditPostContent('');
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: (postId) => posts.delete(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userPosts', id]);
+      setDeletePostDialogOpen(false);
+      setEditingPost(null);
+    },
+  });
+
+  const updateCommentMutation = useMutation({
+    mutationFn: ({ postId, commentId, content }) => posts.updateComment(postId, commentId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userPosts', id]);
+      setEditCommentDialogOpen(false);
+      setEditingComment(null);
+      setEditCommentContent('');
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: ({ postId, commentId }) => posts.deleteComment(postId, commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userPosts', id]);
+      setDeleteCommentDialogOpen(false);
+      setEditingComment(null);
     },
   });
 
@@ -595,7 +642,7 @@ const Profile = () => {
                 // console.log("Rendering post:", post);
                 return (
                   <Grid columns={12} key={post._id}>
-                    <Card>
+                    <Card sx={{ mb: 2, boxShadow: 3, '&:hover': { boxShadow: 6 } }}>
                       <CardContent>
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 2 }}
@@ -625,6 +672,16 @@ const Profile = () => {
                               {new Date(post.createdAt).toLocaleString()}
                             </Typography>
                           </Box>
+                          {(currentUser?._id === post.author?._id || currentUser?.role === 'admin') && (
+                            <>
+                              <IconButton size="small" onClick={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" color="error" onClick={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </>
+                          )}
                         </Box>
                         <Typography variant="body1" sx={{ mb: 2 }}>
                           {post.content}
@@ -696,6 +753,16 @@ const Profile = () => {
                                     ).toLocaleString()}
                                   </Typography>
                                 </Box>
+                                {(currentUser?._id === comment.author?._id || currentUser?.role === 'admin') && (
+                                  <>
+                                    <IconButton size="small" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}>
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" color="error" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}>
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </>
+                                )}
                               </Box>
                             ))}
                           </Box>
@@ -823,6 +890,94 @@ const Profile = () => {
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleUpdateProfile} variant="contained">
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Post Dialog */}
+      <Dialog open={editPostDialogOpen} onClose={() => setEditPostDialogOpen(false)}>
+        <DialogTitle>Edit Post</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            value={editPostContent}
+            onChange={(e) => setEditPostContent(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditPostDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => updatePostMutation.mutate({ postId: editingPost._id, content: editPostContent })}
+            disabled={updatePostMutation.isLoading || !editPostContent.trim()}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Post Confirmation Dialog */}
+      <Dialog open={deletePostDialogOpen} onClose={() => setDeletePostDialogOpen(false)}>
+        <DialogTitle>Delete Post</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this post?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeletePostDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => deletePostMutation.mutate(editingPost._id)}
+            disabled={deletePostMutation.isLoading}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Comment Dialog */}
+      <Dialog open={editCommentDialogOpen} onClose={() => setEditCommentDialogOpen(false)}>
+        <DialogTitle>Edit Comment</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            value={editCommentContent}
+            onChange={(e) => setEditCommentContent(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditCommentDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => updateCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent })}
+            disabled={updateCommentMutation.isLoading || !editCommentContent.trim()}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Comment Confirmation Dialog */}
+      <Dialog open={deleteCommentDialogOpen} onClose={() => setDeleteCommentDialogOpen(false)}>
+        <DialogTitle>Delete Comment</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this comment?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteCommentDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => deleteCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id })}
+            disabled={deleteCommentMutation.isLoading}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

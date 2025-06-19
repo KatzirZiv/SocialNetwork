@@ -319,3 +319,47 @@ exports.removeComment = asyncHandler(async (req, res, next) => {
     data: post,
   });
 });
+
+// @desc    Update comment on post
+// @route   PUT /api/posts/:id/comments/:comment_id
+// @access  Private
+exports.updateComment = asyncHandler(async (req, res, next) => {
+  const post = await Post.findById(req.params.id);
+
+  if (!post) {
+    return next(
+      new ErrorResponse(`Post not found with id of ${req.params.id}`, 404)
+    );
+  }
+
+  // Find comment
+  const comment = post.comments.id(req.params.comment_id);
+
+  if (!comment) {
+    return next(
+      new ErrorResponse(
+        `Comment not found with id of ${req.params.comment_id}`,
+        404
+      )
+    );
+  }
+
+  // Make sure user is comment owner or admin
+  if (comment.author.toString() !== req.user.id && req.user.role !== "admin") {
+    return next(
+      new ErrorResponse(
+        `User ${req.user.id} is not authorized to update this comment`,
+        401
+      )
+    );
+  }
+
+  // Update content
+  comment.content = req.body.content || comment.content;
+  await post.save();
+
+  res.status(200).json({
+    success: true,
+    data: post,
+  });
+});

@@ -8,7 +8,8 @@ const {
   deletePost,
   likePost,
   addComment,
-  removeComment
+  removeComment,
+  updateComment
 } = require('../controllers/posts');
 const { protect } = require('../middleware/auth');
 
@@ -59,6 +60,15 @@ router.post(
     check('content', 'Content cannot be more than 1000 characters').isLength({ max: 1000 })
   ],
   addComment
+);
+
+// Update comment
+router.put(
+  '/:id/comments/:comment_id',
+  [
+    check('content', 'Content cannot be more than 1000 characters').optional().isLength({ max: 1000 })
+  ],
+  updateComment
 );
 
 // Remove comment
