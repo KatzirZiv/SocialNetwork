@@ -1,6 +1,31 @@
 const Group = require('../models/Group');
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for cover image uploads
+const coverStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../../uploads/'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const coverUpload = multer({
+  storage: coverStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: function (req, file, cb) {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files are allowed!'));
+  },
+}).single('coverImage');
 
 // @desc    Create group
 // @route   POST /api/groups
@@ -103,54 +128,43 @@ exports.getGroup = async (req, res) => {
 // @route   PUT /api/groups/:id
 // @access  Private
 exports.updateGroup = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  try {
-    const { name, description } = req.body;
-    const updateFields = {};
-
-    if (name) updateFields.name = name;
-    if (description) updateFields.description = description;
-
-    let group = await Group.findById(req.params.id);
-
-    if (!group) {
-      return res.status(404).json({
-        success: false,
-        message: 'Group not found'
-      });
+  coverUpload(req, res, async function (err) {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message });
     }
-
-    // Make sure user is group admin
-    if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this group'
-      });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-
-    group = await Group.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    )
-      .populate('admin', 'username profilePicture')
-      .populate('members', 'username profilePicture');
-
-    res.status(200).json({
-      success: true,
-      data: group
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
+    try {
+      const { name, description } = req.body;
+      const updateFields = {};
+      if (name) updateFields.name = name;
+      if (description) updateFields.description = description;
+      if (req.file) {
+        updateFields.coverImage = `/uploads/${req.file.filename}`;
+      }
+      let group = await Group.findById(req.params.id);
+      if (!group) {
+        return res.status(404).json({ success: false, message: 'Group not found' });
+      }
+      // Make sure user is group admin
+      if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Not authorized to update this group' });
+      }
+      group = await Group.findByIdAndUpdate(
+        req.params.id,
+        { $set: updateFields },
+        { new: true, runValidators: true }
+      )
+        .populate('admin', 'username profilePicture')
+        .populate('members', 'username profilePicture');
+      res.status(200).json({ success: true, data: group });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  });
 };
 
 // @desc    Delete group

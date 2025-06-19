@@ -32,6 +32,10 @@ const groupSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  coverImage: {
+    type: String, // URL to cover image
+    default: '/uploads/default_cover.png'
   }
 });
 
