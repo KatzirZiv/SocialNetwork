@@ -284,6 +284,12 @@ const Group = () => {
 
   const groupPostsList = groupPosts?.data?.data || [];
 
+  // Helper to get profile picture or fallback
+  const getProfilePicture = (user) =>
+    user?.profilePicture
+      ? `http://localhost:5000${user.profilePicture}`
+      : `http://localhost:5000/uploads/default-profile.png`;
+
   if (groupLoading) {
     return (
       <Box
@@ -623,7 +629,7 @@ const Group = () => {
                   }
                 >
                   <ListItemAvatar>
-                    <Avatar src={member.profilePicture} alt={member.username} />
+                    <Avatar src={getProfilePicture(member)} alt={member.username} />
                   </ListItemAvatar>
                   <ListItemText
                     primary={member.username}
@@ -721,7 +727,7 @@ const Group = () => {
             renderOption={(props, option) => (
               <ListItem {...props}>
                 <ListItemAvatar>
-                  <Avatar src={option.profilePicture} alt={option.username} />
+                  <Avatar src={getProfilePicture(option)} alt={option.username} />
                 </ListItemAvatar>
                 <ListItemText primary={option.username} />
               </ListItem>
