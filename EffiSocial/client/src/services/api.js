@@ -185,8 +185,8 @@ export const posts = {
       headers: { "Content-Type": "application/json" },
     }),
   delete: (id) => api.delete(`/posts/${id}`),
-  like: (id) => api.post(`/posts/${id}/like`),
-  unlike: (id) => api.post(`/posts/${id}/unlike`),
+  like: (id) => api.put(`/posts/${id}/like`),
+  unlike: (id) => api.put(`/posts/${id}/unlike`),
   comment: (id, data) =>
     api.post(`/posts/${id}/comments`, data, {
       headers: { "Content-Type": "application/json" },
