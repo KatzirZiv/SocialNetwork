@@ -12,6 +12,8 @@ import {
   Box,
   Divider,
   Button,
+  Tab,
+  Tabs,
 } from '@mui/material';
 import {
   PersonAdd as PersonAddIcon,
@@ -25,10 +27,17 @@ const FriendRequests = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [tab, setTab] = useState(0);
 
   const { data: requestsData } = useQuery({
     queryKey: ['friendRequests'],
     queryFn: () => users.getFriendRequests(),
+    enabled: !!user?._id,
+  });
+
+  const { data: outgoingRequestsData } = useQuery({
+    queryKey: ['outgoingFriendRequests'],
+    queryFn: () => users.getOutgoingFriendRequests(),
     enabled: !!user?._id,
   });
 
@@ -63,9 +72,11 @@ const FriendRequests = () => {
     rejectRequestMutation.mutate(requestId);
   };
 
-  const pendingRequests = requestsData?.data?.filter(
+  const pendingRequests = requestsData?.data?.data?.filter(
     (request) => request.status === 'pending'
   ) || [];
+  console.log('requestsData', requestsData);
+  console.log('pendingRequests', pendingRequests);
 
   return (
     <>
@@ -83,51 +94,89 @@ const FriendRequests = () => {
         open={Boolean(anchorEl)}
         onClose={handleClose}
         PaperProps={{
-          sx: { width: 320, maxHeight: 400 },
+          sx: { width: 350, maxHeight: 400 },
         }}
       >
-        <Box sx={{ p: 2 }}>
-          <Typography variant="h6">Friend Requests</Typography>
-        </Box>
-        <Divider />
-        {pendingRequests.length === 0 ? (
-          <MenuItem>
-            <ListItemText primary="No pending requests" />
-          </MenuItem>
-        ) : (
-          pendingRequests.map((request) => (
-            <MenuItem key={request._id} sx={{ py: 1 }}>
-              <ListItemAvatar>
-                <Avatar
-                  src={request.from.profilePicture ? `http://localhost:5000${request.from.profilePicture}` : undefined}
-                  alt={request.from.username}
-                />
-              </ListItemAvatar>
-              <ListItemText
-                primary={request.from.username}
-                secondary="Wants to be your friend"
-              />
-              <Box>
-                <Button
-                  size="small"
-                  color="primary"
-                  onClick={() => handleAccept(request.from._id)}
-                  startIcon={<CheckIcon />}
-                  sx={{ mr: 1 }}
-                >
-                  Accept
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={() => handleReject(request.from._id)}
-                  startIcon={<CloseIcon />}
-                >
-                  Reject
-                </Button>
-              </Box>
-            </MenuItem>
-          ))
+        <Tabs
+          value={tab}
+          onChange={(_, newValue) => setTab(newValue)}
+          variant="fullWidth"
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="Incoming" />
+          <Tab label="Outgoing" />
+        </Tabs>
+        {tab === 0 && (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6">Incoming Friend Requests</Typography>
+            <Divider sx={{ my: 1 }} />
+            {pendingRequests.length === 0 ? (
+              <MenuItem>
+                <ListItemText primary="No pending requests" />
+              </MenuItem>
+            ) : (
+              pendingRequests.map((request) => (
+                <MenuItem key={request._id} sx={{ py: 1 }}>
+                  <ListItemAvatar>
+                    <Avatar
+                      src={request.sender?.profilePicture ? `http://localhost:5000${request.sender.profilePicture}` : undefined}
+                      alt={request.sender?.username}
+                    />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={request.sender?.username}
+                    secondary="Wants to be your friend"
+                  />
+                  <Box>
+                    <Button
+                      size="small"
+                      color="primary"
+                      onClick={() => handleAccept(request._id)}
+                      startIcon={<CheckIcon />}
+                      sx={{ mr: 1 }}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={() => handleReject(request._id)}
+                      startIcon={<CloseIcon />}
+                    >
+                      Reject
+                    </Button>
+                  </Box>
+                </MenuItem>
+              ))
+            )}
+          </Box>
+        )}
+        {tab === 1 && (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6">Outgoing Friend Requests</Typography>
+            <Divider sx={{ my: 1 }} />
+            {(!outgoingRequestsData?.data || outgoingRequestsData.data.length === 0) ? (
+              <MenuItem>
+                <ListItemText primary="No outgoing requests" />
+              </MenuItem>
+            ) : (
+              outgoingRequestsData.data.map((request) => (
+                <MenuItem key={request._id} sx={{ py: 1 }}>
+                  <ListItemAvatar>
+                    <Avatar
+                      src={request.to.profilePicture ? `http://localhost:5000${request.to.profilePicture}` : undefined}
+                      alt={request.to.username}
+                    />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={request.to.username}
+                    secondary="Request sent"
+                  />
+                  {/* Optionally add a cancel button here */}
+                </MenuItem>
+              ))
+            )}
+          </Box>
         )}
       </Menu>
     </>

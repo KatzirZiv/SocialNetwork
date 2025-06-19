@@ -56,9 +56,9 @@ const Home = () => {
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],
     queryFn: () => posts.getAll(),
-    onSuccess: (data) => {
-      console.log('Posts updated after comment:', data);
-    },
+    // onSuccess: (data) => {
+    //   console.log('Posts updated after comment:', data);
+    // },
   });
 
   const { data: groupsData, isLoading: groupsLoading } = useQuery({
@@ -109,18 +109,18 @@ const Home = () => {
       formData.append('group', selectedGroup);
     }
 
-    console.log('Submitting post with data:', {
-      content: newPost,
-      group: selectedGroup,
-      imageFile: imageFile ? imageFile.name : null,
-    });
+    // console.log('Submitting post with data:', {
+    //   content: newPost,
+    //   group: selectedGroup,
+    //   imageFile: imageFile ? imageFile.name : null,
+    // });
 
     createPostMutation.mutate(formData, {
       onSuccess: (response) => {
-        console.log('Post created successfully:', response);
+        // console.log('Post created successfully:', response);
       },
       onError: (error) => {
-        console.error('Error creating post:', error);
+        // console.error('Error creating post:', error);
       },
     });
   };
@@ -167,7 +167,7 @@ const Home = () => {
 
   const handleCommentSubmit = (postId) => {
     if (!commentTexts[postId]?.trim()) return;
-    console.log('Submitting comment:', { postId, content: commentTexts[postId] });
+    // console.log('Submitting comment:', { postId, content: commentTexts[postId] });
     addCommentMutation.mutate({ postId, content: commentTexts[postId] });
   };
 
@@ -182,19 +182,11 @@ const Home = () => {
   const groupsList = Array.isArray(groupsData?.data) ? groupsData.data : [];
   const postsList = Array.isArray(postsData?.data?.data) ? postsData.data.data : [];
 
-  // Add console logs to debug posts data
-  console.log('Posts data:', postsData);
-
-  // Add console logs to debug postsList
-  console.log('Posts list:', postsList);
-
-  // Add console logs to debug postsData.data
-  console.log('Posts data.data:', postsData?.data);
 
   return (
     <Container maxWidth="lg">
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid columns={12} md={8}>
           <Paper sx={{ p: 2, mb: 3 }}>
             <Box component="form" onSubmit={handlePostSubmit}>
               {error && (
@@ -288,7 +280,7 @@ const Home = () => {
 
           <Grid container spacing={3}>
             {postsList.map((post) => (
-              <Grid item xs={12} key={post._id}>
+              <Grid columns={12} key={post._id}>
                 <Card sx={{ mb: 2, boxShadow: 3, '&:hover': { boxShadow: 6 } }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -403,7 +395,7 @@ const Home = () => {
             ))}
           </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid columns={12} md={4}>
           <FriendsList />
         </Grid>
       </Grid>

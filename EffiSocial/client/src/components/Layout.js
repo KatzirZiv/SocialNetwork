@@ -19,6 +19,7 @@ import {
   ListItemText,
   Divider,
   Badge,
+  ListItemAvatar,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -32,20 +33,51 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { Link as RouterLink } from 'react-router-dom';
+import useNotifications from '../hooks/useNotifications';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { users } from '../services/api';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { notifications, unreadCount, fetchNotifications, markAsRead } = useNotifications(user?._id || user?.id);
+  const queryClient = useQueryClient();
+
+  const acceptRequestMutation = useMutation({
+    mutationFn: (requestId) => users.acceptFriendRequest(requestId),
+    onSuccess: () => {
+      fetchNotifications();
+      queryClient.invalidateQueries(['friends']);
+    },
+  });
+
+  const rejectRequestMutation = useMutation({
+    mutationFn: (requestId) => users.rejectFriendRequest(requestId),
+    onSuccess: () => {
+      fetchNotifications();
+    },
+  });
+
+  const handleAccept = (requestId) => {
+    acceptRequestMutation.mutate(requestId);
+  };
+
+  const handleReject = (requestId) => {
+    rejectRequestMutation.mutate(requestId);
+  };
 
   const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
+    setUserMenuAnchorEl(event.currentTarget);
   };
 
   const handleClose = () => {
-    setAnchorEl(null);
+    setUserMenuAnchorEl(null);
   };
 
   const handleProfile = () => {
@@ -57,11 +89,9 @@ const Layout = ({ children }) => {
     
     const userId = user._id || user.id;
     if (!userId) {
-      console.error('No user ID found:', user);
       return;
     }
     
-    console.log('Navigating to profile:', userId);
     navigate(`/profile/${userId}`);
   };
 
@@ -69,6 +99,15 @@ const Layout = ({ children }) => {
     handleClose();
     logout();
     navigate('/login');
+  };
+
+  const handleNotificationsClick = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+    fetchNotifications();
+  };
+
+  const handleNotificationsClose = () => {
+    setNotificationAnchorEl(null);
   };
 
   const menuItems = [
@@ -120,11 +159,60 @@ const Layout = ({ children }) => {
                   <ChatIcon />
                 </Badge>
               </IconButton>
-              <IconButton color="inherit">
-                <Badge badgeContent={5} color="error">
+              <IconButton color="inherit" onClick={handleNotificationsClick}>
+                <Badge badgeContent={unreadCount} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
+              <Menu
+                anchorEl={notificationAnchorEl}
+                open={Boolean(notificationAnchorEl)}
+                onClose={handleNotificationsClose}
+                onClick={markAsRead}
+                PaperProps={{ sx: { width: 350, maxHeight: 400 } }}
+              >
+                <Box sx={{ p: 2 }}>
+                  <Typography variant="h6">Notifications</Typography>
+                </Box>
+                <Divider />
+                {notifications.length === 0 ? (
+                  <MenuItem disabled>No notifications</MenuItem>
+                ) : (
+                  notifications.map((notification) => (
+                    <MenuItem key={notification._id} sx={{ alignItems: 'flex-start' }}>
+                      <ListItemAvatar>
+                        <Avatar src={notification.avatar} />
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={notification.message}
+                        secondary={new Date(notification.createdAt).toLocaleString()}
+                      />
+                      {notification.type === 'friend_request_incoming' && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Button
+                            size="small"
+                            color="primary"
+                            onClick={() => handleAccept(notification._id)}
+                            startIcon={<CheckIcon />}
+                            disabled={acceptRequestMutation.isLoading}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => handleReject(notification._id)}
+                            startIcon={<CloseIcon />}
+                            disabled={rejectRequestMutation.isLoading}
+                          >
+                            Reject
+                          </Button>
+                        </Box>
+                      )}
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
               <IconButton
                 size="large"
                 aria-label="account of current user"
@@ -148,7 +236,7 @@ const Layout = ({ children }) => {
               </IconButton>
               <Menu
                 id="menu-appbar"
-                anchorEl={anchorEl}
+                anchorEl={userMenuAnchorEl}
                 anchorOrigin={{
                   vertical: 'bottom',
                   horizontal: 'right',
@@ -158,7 +246,7 @@ const Layout = ({ children }) => {
                   vertical: 'top',
                   horizontal: 'right',
                 }}
-                open={Boolean(anchorEl)}
+                open={Boolean(userMenuAnchorEl)}
                 onClose={handleClose}
               >
                 <MenuItem onClick={handleProfile}>Profile</MenuItem>

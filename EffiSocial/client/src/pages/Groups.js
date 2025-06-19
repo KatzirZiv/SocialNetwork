@@ -151,7 +151,7 @@ const Groups = () => {
       ) : (
         <Grid container spacing={3}>
           {filteredGroups.map((group) => (
-            <Grid item xs={12} sm={6} md={4} key={group._id}>
+            <Grid columns={12} sm={6} md={4} key={group._id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

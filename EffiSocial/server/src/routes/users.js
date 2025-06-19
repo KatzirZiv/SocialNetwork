@@ -20,21 +20,9 @@ const {
   acceptFriendRequest,
   rejectFriendRequest,
   getFriendRequests,
-  cancelFriendRequest
+  cancelFriendRequest,
+  getOutgoingFriendRequests
 } = require('../controllers/users');
-
-// Debug middleware to log all requests
-router.use((req, res, next) => {
-  console.log(`[USERS ROUTER] ${req.method} ${req.originalUrl}`);
-  console.log('Request params:', req.params);
-  console.log('Request body:', req.body);
-  console.log('Request query:', req.query);
-  console.log('Available routes:', router.stack.map(r => ({
-    path: r.route?.path,
-    methods: r.route?.methods
-  })).filter(r => r.path));
-  next();
-});
 
 // Search users route - allow non-logged-in users but check auth if available
 router.get('/search', async (req, res, next) => {
@@ -110,7 +98,12 @@ router.route('/')
   .post(protect, authorize('admin'), createUser);
 
 // Friend request routes
-router.delete('/:id/friend-request', protect, cancelFriendRequest);
+router.delete('/friend-request/:requestId', protect, cancelFriendRequest);
+router.put('/friend-request/:requestId/accept', protect, acceptFriendRequest);
+router.put('/friend-request/:requestId/reject', protect, rejectFriendRequest);
+
+// Outgoing friend requests
+router.get('/outgoing-friend-requests', protect, getOutgoingFriendRequests);
 
 // Catch-all for unknown /api/users/* routes - must be last
 router.use((req, res) => {
