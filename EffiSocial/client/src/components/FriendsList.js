@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -27,6 +27,7 @@ import AddFriend from './AddFriend';
 const FriendsList = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: friendsData, isLoading } = useQuery({
     queryKey: ['friends', user?._id],
@@ -34,13 +35,15 @@ const FriendsList = () => {
     enabled: !!user?._id,
   });
 
-  const handleRemoveFriend = async (friendId) => {
-    try {
-      await users.removeFriend(user._id, friendId);
-      // The query will automatically refetch due to React Query's cache invalidation
-    } catch (error) {
-      console.error('Error removing friend:', error);
-    }
+  const removeFriendMutation = useMutation({
+    mutationFn: (friendId) => users.removeFriend(user._id, friendId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['friends', user?._id]);
+    },
+  });
+
+  const handleRemoveFriend = (friendId) => {
+    removeFriendMutation.mutate(friendId);
   };
 
   const handleMessage = (friendId) => {
