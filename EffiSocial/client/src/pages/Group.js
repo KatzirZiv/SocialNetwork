@@ -70,6 +70,10 @@ const Group = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [editPostContent, setEditPostContent] = useState('');
   const [editCommentContent, setEditCommentContent] = useState('');
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [userToAdd, setUserToAdd] = useState(null);
 
   const {
     data: groupData,
@@ -188,6 +192,24 @@ const Group = () => {
       queryClient.invalidateQueries(['groupPosts', id]);
       setDeleteCommentDialogOpen(false);
       setEditingComment(null);
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: ({ groupId, userId }) => groups.removeMember(groupId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["group", id]);
+      setRemoveMemberDialogOpen(false);
+      setMemberToRemove(null);
+    },
+  });
+
+  const addMemberMutation = useMutation({
+    mutationFn: ({ groupId, userId }) => groups.addMember(groupId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["group", id]);
+      setAddMemberDialogOpen(false);
+      setUserToAdd(null);
     },
   });
 
@@ -480,7 +502,7 @@ const Group = () => {
                           />
                         </Box>
                       )}
-                      {(currentUser?._id === post.author?._id || currentUser?.role === 'admin') && (
+                      {(currentUser?._id === post.author?._id || currentUser?.role === 'admin' || isAdmin) && (
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                           <IconButton size="small" onClick={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}>
                             <EditIcon fontSize="small" />
@@ -566,6 +588,16 @@ const Group = () => {
 
       {activeTab === 1 && (
         <Paper sx={{ p: 2 }}>
+          {isAdmin && (
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => setAddMemberDialogOpen(true)}
+              sx={{ mb: 2 }}
+            >
+              Add Member
+            </Button>
+          )}
           {group.members?.length === 0 ? (
             <Alert severity="info">No members in this group yet.</Alert>
           ) : (
@@ -574,9 +606,20 @@ const Group = () => {
                 <ListItem
                   key={member._id}
                   secondaryAction={
-                    member._id === group.admin?._id && (
+                    member._id === group.admin?._id ? (
                       <Chip label="Admin" color="primary" size="small" />
-                    )
+                    ) : isAdmin ? (
+                      <Button
+                        color="error"
+                        size="small"
+                        onClick={() => {
+                          setMemberToRemove(member);
+                          setRemoveMemberDialogOpen(true);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    ) : null
                   }
                 >
                   <ListItemAvatar>
@@ -780,6 +823,45 @@ const Group = () => {
             disabled={deleteCommentMutation.isLoading}
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={removeMemberDialogOpen} onClose={() => setRemoveMemberDialogOpen(false)}>
+        <DialogTitle>Remove Member</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to remove {memberToRemove?.username} from the group?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveMemberDialogOpen(false)}>Cancel</Button>
+          <Button
+            color="error"
+            onClick={() => removeMemberMutation.mutate({ groupId: id, userId: memberToRemove._id })}
+            disabled={removeMemberMutation.isLoading}
+          >
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={addMemberDialogOpen} onClose={() => setAddMemberDialogOpen(false)}>
+        <DialogTitle>Add Member</DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            options={filteredFriends}
+            getOptionLabel={(option) => option.username}
+            value={userToAdd}
+            onChange={(_, value) => setUserToAdd(value)}
+            renderInput={(params) => <TextField {...params} label="Select Friend" />}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddMemberDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => userToAdd && addMemberMutation.mutate({ groupId: id, userId: userToAdd._id })}
+            disabled={addMemberMutation.isLoading || !userToAdd}
+          >
+            Add
           </Button>
         </DialogActions>
       </Dialog>

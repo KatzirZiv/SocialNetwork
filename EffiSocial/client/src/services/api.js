@@ -154,6 +154,18 @@ export const groups = {
       { userId },
       { headers: { "Content-Type": "application/json" } }
     ),
+  addMember: (id, userId) =>
+    api.post(
+      `/groups/${id}/add-member`,
+      { userId },
+      { headers: { "Content-Type": "application/json" } }
+    ),
+  removeMember: (id, userId) =>
+    api.post(
+      `/groups/${id}/remove-member`,
+      { userId },
+      { headers: { "Content-Type": "application/json" } }
+    ),
 };
 
 // Post endpoints
