@@ -20,6 +20,7 @@ import { Send as SendIcon } from '@mui/icons-material';
 import { messages, users } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import useSocket from '../hooks/useSocket';
+import { useLocation } from 'react-router-dom';
 
 const Chat = () => {
   const { user: currentUser } = useAuth();
@@ -28,6 +29,7 @@ const Chat = () => {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const location = useLocation();
 
   const socket = useSocket(currentUser?._id);
 
@@ -78,6 +80,17 @@ const Chat = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messagesData]);
+
+  // Pre-select user if navigated from profile
+  useEffect(() => {
+    if (location.state && location.state.userId && friendsData && Array.isArray(friendsData.data?.data)) {
+      const user = friendsData.data.data.find(f => f._id === location.state.userId);
+      if (user) {
+        setSelectedUser(user);
+      }
+    }
+    // eslint-disable-next-line
+  }, [location.state, friendsData]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();

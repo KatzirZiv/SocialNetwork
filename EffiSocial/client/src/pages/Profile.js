@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, Navigate, Link } from "react-router-dom";
+import { useParams, Navigate, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Container,
@@ -66,6 +66,7 @@ const Profile = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [editPostContent, setEditPostContent] = useState('');
   const [editCommentContent, setEditCommentContent] = useState('');
+  const navigate = useNavigate();
 
   const {
     data: profileData,
@@ -473,7 +474,28 @@ const Profile = () => {
               Edit Profile
             </Button>
           ) : (
-            <>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  navigate('/chat', {
+                    state: {
+                      userId: profileData.data.data._id,
+                      username: profileData.data.data.username,
+                      profilePicture: profileData.data.data.profilePicture
+                    }
+                  });
+                }}
+                sx={{
+                  borderRadius: "20px",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  px: 3,
+                }}
+              >
+                Send a Message
+              </Button>
               {isFriend ? (
                 <Button
                   variant="contained"
@@ -538,7 +560,7 @@ const Profile = () => {
                   Add Friend
                 </Button>
               )}
-            </>
+            </Box>
           )}
         </Box>
       </Paper>
