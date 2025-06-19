@@ -97,8 +97,13 @@ exports.getPosts = asyncHandler(async (req, res, next) => {
     } else if (req.query.author) {
       query.author = req.query.author;
     } else {
-      // Otherwise get posts from user and their friends
-      query.$or = [{ author: req.user.id }, { author: { $in: user.friends } }];
+      // Get posts from user, their friends, and their groups
+      const userIds = [req.user.id, ...(user.friends || [])];
+      const groupIds = user.groups || [];
+      query.$or = [
+        { author: { $in: userIds } },
+        { group: { $in: groupIds } }
+      ];
     }
 
     // Get posts

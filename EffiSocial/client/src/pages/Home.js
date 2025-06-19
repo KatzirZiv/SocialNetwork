@@ -28,6 +28,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Chip,
 } from '@mui/material';
 import {
   ThumbUp as ThumbUpIcon,
@@ -243,21 +244,6 @@ const Home = () => {
                   {error}
                 </Alert>
               )}
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setGroupDialogOpen(true)}
-                  sx={{ mr: 2 }}
-                >
-                  {selectedGroup ? 'Change Group' : 'Choose Group'}
-                </Button>
-                {selectedGroup && (
-                  <Typography variant="body2" color="text.secondary">
-                    Group: {groupsList.find(g => g._id === selectedGroup)?.name}
-                  </Typography>
-                )}
-              </Box>
               <TextField
                 fullWidth
                 multiline
@@ -350,6 +336,16 @@ const Home = () => {
                         <Typography variant="caption" color="text.secondary">
                           {new Date(post.createdAt).toLocaleString()}
                         </Typography>
+                        {post.group && (
+                          <Box sx={{ mt: 0.5 }}>
+                            <Chip
+                              label={`Group: ${post.group?.name || 'Unknown'}`}
+                              color="primary"
+                              size="small"
+                              sx={{ mt: 0.5 }}
+                            />
+                          </Box>
+                        )}
                       </Box>
                       {(user?._id === post.author?._id || user?.role === 'admin') && (
                         <>
