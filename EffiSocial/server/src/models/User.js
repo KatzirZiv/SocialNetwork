@@ -57,7 +57,7 @@ const userSchema = new mongoose.Schema(
     friendRequests: [
       {
         from: {
-          type: mongoose.Schema.Types.Mixed, // Can be ObjectId or String for temporary IDs
+          type: mongoose.Schema.Types.ObjectId,
           ref: 'User',
         },
         status: {

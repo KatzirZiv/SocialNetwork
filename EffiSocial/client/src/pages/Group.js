@@ -393,9 +393,9 @@ const Group = () => {
               No posts yet. Be the first to share something!
             </Alert>
           ) : (
-            <Grid container spacing={3}>
+            <Grid columns={12}>
               {posts.map((post) => (
-                <Grid item xs={12} key={post._id}>
+                <Grid columns={12} key={post._id}>
                   <Card>
                     <CardContent>
                       <Box

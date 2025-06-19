@@ -56,7 +56,7 @@ const FriendsList = () => {
   }
 
   // Ensure friends is always an array
-  const friends = Array.isArray(friendsData?.data) ? friendsData.data : [];
+  const friends = Array.isArray(friendsData?.data?.data) ? friendsData.data.data : [];
 
   return (
     <>
@@ -91,7 +91,7 @@ const FriendsList = () => {
               >
                 <ListItemAvatar>
                   <Avatar
-                    src={friend.profilePicture ? `http://localhost:5000${friend.profilePicture}` : undefined}
+                    src={friend.profilePicture ? `http://localhost:5000${friend.profilePicture}` : 'http://localhost:5000/uploads/default-profile.png'}
                     alt={friend.username}
                   >
                     <PersonIcon />

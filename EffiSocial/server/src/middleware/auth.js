@@ -3,14 +3,6 @@ const User = require('../models/User');
 
 // Protect routes
 exports.protect = async (req, res, next) => {
-  console.log('=== Authentication Middleware ===');
-  console.log('Request details:', {
-    method: req.method,
-    url: req.originalUrl,
-    headers: req.headers,
-    body: req.body
-  });
-
   let token;
 
   if (
@@ -18,9 +10,7 @@ exports.protect = async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
-    console.log('Token found:', token.substring(0, 20) + '...');
   } else {
-    console.log('No token found in headers');
     return res.status(401).json({
       success: false,
       message: 'Not authorized to access this route'
@@ -30,27 +20,19 @@ exports.protect = async (req, res, next) => {
   try {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decoded:', decoded);
 
     // Get user from the token
     req.user = await User.findById(decoded.id);
 
     if (!req.user) {
-      console.log('User not found for ID:', decoded.id);
       return res.status(401).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    console.log('User authenticated:', {
-      id: req.user._id,
-      username: req.user.username
-    });
-
     next();
   } catch (err) {
-    console.error('Authentication error:', err);
     return res.status(401).json({
       success: false,
       message: 'Not authorized to access this route'

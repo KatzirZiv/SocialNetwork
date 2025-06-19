@@ -42,16 +42,7 @@ export const users = {
   getById: (id) => api.get(`/users/${id}`),
   getPosts: (id) => api.get(`/users/${id}/posts`),
   update: (id, data) => {
-    console.log("API Update Request - ID:", id);
-    console.log("API Update Request - Data:", data);
-
     if (data instanceof FormData) {
-      // Log FormData contents
-      for (let pair of data.entries()) {
-        console.log("FormData entry:", pair[0], pair[1]);
-      }
-
-      // Ensure proper headers for multipart/form-data
       return api.put(`/users/${id}`, data, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -59,12 +50,10 @@ export const users = {
         },
         transformRequest: [
           (data) => {
-            console.log("Transform Request - Data:", data);
             return data;
           },
         ],
         onUploadProgress: (progressEvent) => {
-          console.log("Upload progress:", progressEvent);
         },
       });
     } else {
@@ -85,95 +74,60 @@ export const users = {
     api.delete(`/users/${id}/friends/${friendId}`),
   sendFriendRequest: async (userId) => {
     const url = `/users/${userId}/friend-request`;
-    console.log("Sending friend request:", {
-      userId,
-      url,
-      fullUrl: `${API_URL}${url}`,
-      method: "POST",
-    });
     try {
       const response = await api.post(url);
       return response.data;
     } catch (error) {
-      console.error("Friend request error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config,
-        url: error.config?.url,
-        fullUrl: `${API_URL}${error.config?.url}`,
-      });
-
-      // If we have a specific error message from the server, throw it
       if (error.response?.data?.error) {
         throw new Error(error.response.data.error);
       }
-
-      // Otherwise throw a generic error
       throw new Error("Failed to send friend request");
     }
   },
-  cancelFriendRequest: async (userId) => {
-    const url = `/users/${userId}/friend-request`;
-    console.log("Cancelling friend request:", {
-      userId,
-      url,
-      fullUrl: `${API_URL}${url}`,
-      method: "DELETE",
-    });
+  cancelFriendRequest: async (requestId) => {
+    const url = `/users/friend-request/${requestId}`;
     try {
       const response = await api.delete(url);
       return response.data;
     } catch (error) {
-      console.error("Cancel friend request error details:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config,
-        url: error.config?.url,
-        fullUrl: `${API_URL}${error.config?.url}`,
-      });
-
-      // If we have a specific error message from the server, throw it
       if (error.response?.data?.error) {
         throw new Error(error.response.data.error);
       }
-
-      // Otherwise throw a generic error
       throw new Error("Failed to cancel friend request");
     }
   },
-  acceptFriendRequest: (userId) => api.put(`/users/accept-friend/${userId}`),
-  rejectFriendRequest: (userId) => api.put(`/users/reject-friend/${userId}`),
+  acceptFriendRequest: async (requestId) => {
+    const url = `/users/friend-request/${requestId}/accept`;
+    try {
+      const response = await api.put(url);
+      return response.data;
+    } catch (error) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error("Failed to accept friend request");
+    }
+  },
+  rejectFriendRequest: async (requestId) => {
+    const url = `/users/friend-request/${requestId}/reject`;
+    try {
+      const response = await api.put(url);
+      return response.data;
+    } catch (error) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error("Failed to reject friend request");
+    }
+  },
   getFriendRequests: () => api.get("/users/friend-requests"),
   search: async (query) => {
-    console.log("=== API Search Function ===");
-    console.log("Search query:", query);
-    console.log(
-      "API URL:",
-      `${API_URL}/users/search?query=${encodeURIComponent(query)}`
-    );
     try {
       const response = await api.get(
         `/users/search?query=${encodeURIComponent(query)}`
       );
-      console.log("Search API Response:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: response.data,
-      });
       return response.data;
     } catch (error) {
-      console.error("Search API Error:", {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-        },
-      });
       throw error;
     }
   },

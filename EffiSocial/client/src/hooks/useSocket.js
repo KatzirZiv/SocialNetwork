@@ -1,22 +1,25 @@
 import { useEffect, useRef } from 'react';
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 const useSocket = (userId) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Initialize socket connection
-    socketRef.current = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
+    if (!userId) return;
+    // console.log('[Socket] Connecting with userId:', userId);
+    socketRef.current = io('http://localhost:5000', {
+      withCredentials: true
+    });
 
     // Connect user
     if (userId) {
-      socketRef.current.emit('user:connect', userId);
+      socketRef.current.emit('join', userId);
     }
 
     // Cleanup on unmount
     return () => {
       if (userId) {
-        socketRef.current.emit('user:disconnect', userId);
+        socketRef.current.emit('leave', userId);
       }
       socketRef.current.disconnect();
     };

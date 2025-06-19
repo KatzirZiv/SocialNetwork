@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
-const socketIo = require('socket.io');
 const morgan = require('morgan');
 const colors = require('colors');
 const path = require('path');
@@ -20,19 +19,11 @@ process.env.NODE_ENV = 'development';
 // Create Express app
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST']
-  }
-});
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: 'http://localhost:3000',
+  credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -112,15 +103,6 @@ app.get('/default-profile.png', (req, res) => {
 connectDB()
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('New client connected');
-  
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
-});
 
 // Routes (to be implemented)
 app.use('/api/auth', require('./routes/auth'));

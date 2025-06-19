@@ -70,9 +70,9 @@ const Profile = () => {
 
   const { data: userPosts, isLoading: postsLoading } = useQuery({
     queryKey: ["userPosts", id],
-    queryFn: () => posts.getAll({ author: id }),
+    queryFn: () => users.getPosts(id),
     onSuccess: (data) => {
-      console.log("Posts data received:", data);
+      // console.log("Posts data received:", data);
     },
   });
 
@@ -86,9 +86,9 @@ const Profile = () => {
   const updateProfileMutation = useMutation({
     mutationFn: (data) => users.update(id, data),
     onSuccess: (response) => {
-      console.log("Profile updated successfully:", response);
-      console.log("Response data:", response.data);
-      console.log("Updated user data:", response.data.data);
+      // console.log("Profile updated successfully:", response);
+      // console.log("Response data:", response.data);
+      // console.log("Updated user data:", response.data.data);
 
       // Update the query cache with the new data
       queryClient.setQueryData(["user", id], response.data);
@@ -105,10 +105,10 @@ const Profile = () => {
       setMessageType("success");
     },
     onError: (error) => {
-      console.error("Error updating profile:", error);
-      console.error("Error details:", error.response?.data);
-      console.error("Error status:", error.response?.status);
-      console.error("Error headers:", error.response?.headers);
+      // console.error("Error updating profile:", error);
+      // console.error("Error details:", error.response?.data);
+      // console.error("Error status:", error.response?.status);
+      // console.error("Error headers:", error.response?.headers);
       setMessage(error.response?.data?.error || "Error updating profile");
       setMessageType("error");
     },
@@ -129,7 +129,7 @@ const Profile = () => {
       setMessageType("success");
     },
     onError: (error) => {
-      console.error("Error sending friend request:", error);
+      // console.error("Error sending friend request:", error);
       const errorMessage =
         error.response?.data?.error || "Error sending friend request";
       setMessage(errorMessage);
@@ -150,7 +150,7 @@ const Profile = () => {
       setMessageType("success");
     },
     onError: (error) => {
-      console.error("Error cancelling friend request:", error);
+      // console.error("Error cancelling friend request:", error);
       setMessage(
         error.response?.data?.error || "Error cancelling friend request"
       );
@@ -166,7 +166,7 @@ const Profile = () => {
       setMessageType("success");
     },
     onError: (error) => {
-      console.error("Error removing friend:", error);
+      // console.error("Error removing friend:", error);
       setMessage(error.response?.data?.error || "Error removing friend");
       setMessageType("error");
     },
@@ -227,17 +227,17 @@ const Profile = () => {
         formData.append("profilePicture", profilePicFile);
       }
 
-      console.log("FormData contents:");
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
+      // console.log("FormData contents:");
+      // for (let [key, value] of formData.entries()) {
+      //   console.log(`${key}:`, value);
+      // }
 
-      console.log("Submitting request with data:", formData);
+      // console.log("Submitting request with data:", formData);
 
       const response = await updateProfileMutation.mutateAsync(formData);
-      console.log("Profile updated successfully:", response);
-      console.log("Response data:", response);
-      console.log("Updated user data:", response.data);
+      // console.log("Profile updated successfully:", response);
+      // console.log("Response data:", response);
+      // console.log("Updated user data:", response.data);
 
       // Update the query cache with the new data
       queryClient.setQueryData(["user", id], response.data);
@@ -253,10 +253,10 @@ const Profile = () => {
       setMessage("Profile updated successfully");
       setMessageType("success");
     } catch (error) {
-      console.error("Error updating profile:", error);
-      console.error("Error details:", error.response?.data);
-      console.error("Error status:", error.response?.status);
-      console.error("Error headers:", error.response?.headers);
+      // console.error("Error updating profile:", error);
+      // console.error("Error details:", error.response?.data);
+      // console.error("Error status:", error.response?.status);
+      // console.error("Error headers:", error.response?.headers);
       setMessage(error.response?.data?.error || "Error updating profile");
       setMessageType("error");
     }
@@ -286,7 +286,7 @@ const Profile = () => {
     try {
       await createPostMutation.mutateAsync(formData);
     } catch (error) {
-      console.error("Error creating post:", error);
+      // console.error("Error creating post:", error);
     }
   };
 
@@ -336,13 +336,13 @@ const Profile = () => {
   }
 
   const isOwnProfile = currentUser?._id === id;
-  const isFollowing = profileData.data.followers?.includes(currentUser?._id);
-  const isFriend = profileData.data.friends?.includes(currentUser?._id);
-  const hasPendingRequest = profileData.data.friendRequests?.some(
+  const isFollowing = profileData.data.data.followers?.includes(currentUser?._id);
+  const isFriend = Array.isArray(profileData.data.data.friends) && profileData.data.data.friends.some(friend => friend._id === currentUser?._id);
+  const hasPendingRequest = profileData.data.data.friendRequests?.some(
     (request) =>
       request.from === currentUser?._id && request.status === "pending"
   );
-  const hasReceivedRequest = profileData.data.friendRequests?.some(
+  const hasReceivedRequest = profileData.data.data.friendRequests?.some(
     (request) => request.to === currentUser?._id && request.status === "pending"
   );
 
@@ -353,17 +353,17 @@ const Profile = () => {
     ? userPosts.data
     : [];
 
-  console.log("Processed postsList:", postsList);
-  console.log("Friend request status:", {
-    isOwnProfile,
-    isFriend,
-    hasPendingRequest,
-    hasReceivedRequest,
-    friendRequests: profileData.data.friendRequests,
-    currentUserId: currentUser?._id,
-    profileId: id,
-    friends: profileData.data.friends,
-  });
+  // console.log("Processed postsList:", postsList);
+  // console.log("Friend request status:", {
+  //   isOwnProfile,
+  //   isFriend,
+  //   hasPendingRequest,
+  //   hasReceivedRequest,
+  //   friendRequests: profileData.data.friendRequests,
+  //   currentUserId: currentUser?._id,
+  //   profileId: id,
+  //   friends: profileData.data.friends,
+  // });
 
   return (
     <Container maxWidth="md">
@@ -380,14 +380,14 @@ const Profile = () => {
             alt={profileData?.data?.data?.username}
             sx={{ width: 120, height: 120, mb: 2 }}
             onError={(e) => {
-              console.error("Error loading profile picture:", e);
-              console.log("Failed to load image:", e.target.src);
-              console.log("Profile data:", profileData);
+              // console.error("Error loading profile picture:", e);
+              // console.log("Failed to load image:", e.target.src);
+              // console.log("Profile data:", profileData);
               e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
             }}
             onLoad={(e) => {
-              console.log("Profile picture loaded successfully:", e.target.src);
-              console.log("Profile data:", profileData);
+              // console.log("Profile picture loaded successfully:", e.target.src);
+              // console.log("Profile data:", profileData);
             }}
           />
           <Box sx={{ flexGrow: 1, ml: 3 }}>
@@ -399,14 +399,14 @@ const Profile = () => {
             </Typography>
             <Box sx={{ display: "flex", gap: 2 }}>
               <Typography variant="body2">
-                <strong>{profileData.data.friends?.length || 0}</strong> friends
+                <strong>{profileData.data.data.friends?.length || 0}</strong> friends
               </Typography>
               <Typography variant="body2">
-                <strong>{profileData.data.followers?.length || 0}</strong>{" "}
+                <strong>{profileData.data.data.followers?.length || 0}</strong>{" "}
                 followers
               </Typography>
               <Typography variant="body2">
-                <strong>{profileData.data.following?.length || 0}</strong>{" "}
+                <strong>{profileData.data.data.following?.length || 0}</strong>{" "}
                 following
               </Typography>
             </Box>
@@ -429,11 +429,9 @@ const Profile = () => {
             <>
               {isFriend ? (
                 <Button
-                  variant="outlined"
-                  startIcon={<PersonRemoveIcon />}
-                  onClick={() => removeFriendMutation.mutate()}
-                  disabled={removeFriendMutation.isLoading}
-                  color="error"
+                  variant="contained"
+                  startIcon={<PersonAddIcon />}
+                  disabled
                   sx={{
                     borderRadius: "20px",
                     textTransform: "none",
@@ -441,7 +439,7 @@ const Profile = () => {
                     px: 3,
                   }}
                 >
-                  Remove Friend
+                  Friends
                 </Button>
               ) : hasPendingRequest ? (
                 <Button
@@ -594,9 +592,9 @@ const Profile = () => {
           ) : (
             <Grid container spacing={3}>
               {postsList.map((post) => {
-                console.log("Rendering post:", post);
+                // console.log("Rendering post:", post);
                 return (
-                  <Grid item xs={12} key={post._id}>
+                  <Grid columns={12} key={post._id}>
                     <Card>
                       <CardContent>
                         <Box
@@ -641,15 +639,15 @@ const Profile = () => {
                               borderRadius: 1,
                             }}
                             onError={(e) => {
-                              console.error("Error loading image:", e);
-                              console.log("Failed image path:", e.target.src);
+                              // console.error("Error loading image:", e);
+                              // console.log("Failed image path:", e.target.src);
                               e.target.src = `http://localhost:5000/default-post.png`;
                             }}
                             onLoad={(e) => {
-                              console.log(
-                                "Successfully loaded image:",
-                                e.target.src
-                              );
+                              // console.log(
+                              //   "Successfully loaded image:",
+                              //   e.target.src
+                              // );
                             }}
                           />
                         )}
