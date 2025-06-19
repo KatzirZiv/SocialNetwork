@@ -141,10 +141,26 @@ export const groups = {
     api.post("/groups", data, {
       headers: { "Content-Type": "application/json" },
     }),
-  update: (id, data) =>
-    api.put(`/groups/${id}`, data, {
-      headers: { "Content-Type": "application/json" },
-    }),
+  update: (id, data) => {
+    if (data instanceof FormData) {
+      return api.put(`/groups/${id}`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Accept: "application/json",
+        },
+        transformRequest: [
+          (data) => {
+            return data;
+          },
+        ],
+        onUploadProgress: (progressEvent) => {},
+      });
+    } else {
+      return api.put(`/groups/${id}`, data, {
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+      });
+    }
+  },
   delete: (id) => api.delete(`/groups/${id}`),
   join: (id) => api.post(`/groups/${id}/join`),
   leave: (id) => api.post(`/groups/${id}/leave`),
@@ -229,5 +245,3 @@ export const messages = {
     }),
   delete: (id) => api.delete(`/messages/${id}`),
 };
-
-export default api;

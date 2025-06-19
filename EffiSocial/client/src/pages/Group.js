@@ -74,6 +74,8 @@ const Group = () => {
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [userToAdd, setUserToAdd] = useState(null);
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
 
   const {
     data: groupData,
@@ -265,6 +267,28 @@ const Group = () => {
     }
   };
 
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCoverImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setCoverImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadCoverImage = () => {
+    if (!coverImageFile) return;
+    const formData = new FormData();
+    formData.append('coverImage', coverImageFile);
+    updateGroupMutation.mutate(formData, {
+      onSuccess: () => {
+        setCoverImageFile(null);
+        setCoverImagePreview(null);
+      },
+    });
+  };
+
   const group = groupData?.data?.data;
   const filteredFriends =
     friendsData?.data?.data?.filter((friend) => {
@@ -327,6 +351,51 @@ const Group = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Cover Image Section */}
+      <Box sx={{ position: 'relative', mb: 3 }}>
+        <img
+          src={group.coverImage ? `http://localhost:5000${group.coverImage}` : 'http://localhost:5000/uploads/default_cover.png'}
+          alt="Group Cover"
+          style={{ width: '100%', height: 240, objectFit: 'cover', borderRadius: 12 }}
+        />
+        {isAdmin && (
+          <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="group-cover-image-upload"
+              type="file"
+              onChange={handleCoverImageChange}
+            />
+            <label htmlFor="group-cover-image-upload">
+              <Button variant="contained" component="span" size="small">
+                Change Cover
+              </Button>
+            </label>
+            {coverImagePreview && (
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                onClick={handleUploadCoverImage}
+                sx={{ ml: 1 }}
+              >
+                Save
+              </Button>
+            )}
+          </Box>
+        )}
+        {coverImagePreview && (
+          <Box sx={{ position: 'absolute', top: 16, left: 16, bgcolor: 'background.paper', p: 1, borderRadius: 2, boxShadow: 2 }}>
+            <Typography variant="caption">Preview:</Typography>
+            <img
+              src={coverImagePreview}
+              alt="Preview"
+              style={{ width: 120, height: 60, objectFit: 'cover', borderRadius: 8, marginTop: 4 }}
+            />
+          </Box>
+        )}
+      </Box>
       <Paper sx={{ p: 3, mb: 4 }}>
         <Box
           sx={{
@@ -483,7 +552,7 @@ const Group = () => {
                         sx={{ display: "flex", alignItems: "center", mb: 2 }}
                       >
                         <Avatar
-                          src={post.author?.profilePicture}
+                          src={getProfilePicture(post.author)}
                           alt={post.author?.username}
                           sx={{ mr: 2 }}
                         />
