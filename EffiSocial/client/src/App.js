@@ -26,6 +26,61 @@ const theme = createTheme({
     secondary: {
       main: '#dc004e',
     },
+    background: {
+      default: '#f7f9fb',
+      paper: '#fff',
+    },
+    text: {
+      primary: '#222',
+      secondary: '#555',
+    },
+  },
+  shape: {
+    borderRadius: 14,
+  },
+  typography: {
+    fontFamily: 'Inter, Roboto, Arial, sans-serif',
+    fontSize: 16,
+    h1: { fontWeight: 700 },
+    h2: { fontWeight: 700 },
+    h3: { fontWeight: 600 },
+    h4: { fontWeight: 600 },
+    h5: { fontWeight: 500 },
+    h6: { fontWeight: 500 },
+    button: { textTransform: 'none', fontWeight: 600 },
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 14,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        },
+      },
+    },
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        },
+      },
+    },
   },
 });
 

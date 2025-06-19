@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -43,6 +43,7 @@ import {
 } from "@mui/icons-material";
 import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import PostMenu from '../components/PostMenu';
 
 const Group = () => {
   const { id } = useParams();
@@ -76,6 +77,7 @@ const Group = () => {
   const [userToAdd, setUserToAdd] = useState(null);
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [coverImagePreview, setCoverImagePreview] = useState(null);
+  const [optimisticLikes, setOptimisticLikes] = useState({});
 
   const {
     data: groupData,
@@ -246,7 +248,23 @@ const Group = () => {
   };
 
   const handleLike = (postId) => {
-    likePostMutation.mutate(postId);
+    setOptimisticLikes((prev) => {
+      const post = groupPostsList.find((p) => p._id === postId);
+      if (!post) return prev;
+      const liked = post.likes.includes(currentUser?._id) || (prev[postId] && prev[postId].liked);
+      return {
+        ...prev,
+        [postId]: { liked: !liked }
+      };
+    });
+    likePostMutation.mutate(postId, {
+      onError: () => {
+        setOptimisticLikes((prev) => {
+          const { [postId]: _, ...rest } = prev;
+          return rest;
+        });
+      },
+    });
   };
 
   const handleInviteFriend = () => {
@@ -313,6 +331,12 @@ const Group = () => {
     user?.profilePicture
       ? `http://localhost:5000${user.profilePicture}`
       : `http://localhost:5000/uploads/default-profile.png`;
+
+  useEffect(() => {
+    if (editPostDialogOpen && editingPost) {
+      setEditPostContent(editingPost.content || '');
+    }
+  }, [editPostDialogOpen, editingPost]);
 
   if (groupLoading) {
     return (
@@ -578,14 +602,10 @@ const Group = () => {
                         </Box>
                       )}
                       {(currentUser?._id === post.author?._id || currentUser?.role === 'admin' || isAdmin) && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <IconButton size="small" onClick={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" color="error" onClick={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                        <PostMenu
+                          onEdit={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}
+                          onDelete={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}
+                        />
                       )}
                       {post.comments && post.comments.length > 0 && (
                         <Box sx={{ mt: 2 }}>
@@ -628,16 +648,19 @@ const Group = () => {
                     <CardActions>
                       <IconButton
                         onClick={() => handleLike(post._id)}
-                        color={
-                          post.likes?.includes(currentUser?._id)
-                            ? "primary"
-                            : "default"
-                        }
+                        color={((optimisticLikes[post._id]?.liked !== undefined
+                          ? optimisticLikes[post._id].liked
+                          : post.likes?.includes(currentUser?._id))
+                          ? 'primary'
+                          : 'default')}
+                        size="small"
                       >
-                        {post.likes?.includes(currentUser?._id) ? (
-                          <ThumbUpIcon />
+                        {(optimisticLikes[post._id]?.liked !== undefined
+                          ? optimisticLikes[post._id].liked
+                          : post.likes?.includes(currentUser?._id)) ? (
+                          <ThumbUpIcon fontSize="small" />
                         ) : (
-                          <ThumbUpOutlinedIcon />
+                          <ThumbUpOutlinedIcon fontSize="small" />
                         )}
                       </IconButton>
                       <Typography variant="body2" color="text.secondary">
