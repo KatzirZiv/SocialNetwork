@@ -40,6 +40,7 @@ import {
 import { users, posts } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import PostMenu from '../components/PostMenu';
+import CommentMenu from '../components/CommentMenu';
 
 const Profile = () => {
   const { id } = useParams();
@@ -69,6 +70,7 @@ const Profile = () => {
   const [editCommentContent, setEditCommentContent] = useState('');
   const navigate = useNavigate();
   const [optimisticLikes, setOptimisticLikes] = useState({});
+  const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
 
   const {
     data: profileData,
@@ -129,8 +131,12 @@ const Profile = () => {
   const likePostMutation = useMutation({
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries(["userPosts", id]);
+      queryClient.invalidateQueries(['userPosts', id]);
+      setOptimisticLikes({}); // Clear optimistic likes after refetch
     },
+    onError: () => {
+      setOptimisticLikes({}); // Clear on error too
+    }
   });
 
   const sendFriendRequestMutation = useMutation({
@@ -322,14 +328,7 @@ const Profile = () => {
         [postId]: { liked: !liked }
       };
     });
-    likePostMutation.mutate(postId, {
-      onError: () => {
-        setOptimisticLikes((prev) => {
-          const { [postId]: _, ...rest } = prev;
-          return rest;
-        });
-      },
-    });
+    likePostMutation.mutate(postId);
   };
 
   const handleCommentSubmit = (postId) => {
@@ -796,14 +795,10 @@ const Profile = () => {
                                   </Typography>
                                 </Box>
                                 {(currentUser?._id === comment.author?._id || currentUser?.role === 'admin') && (
-                                  <>
-                                    <IconButton size="small" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}>
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton size="small" color="error" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}>
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </>
+                                  <CommentMenu
+                                    onEdit={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}
+                                    onDelete={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}
+                                  />
                                 )}
                               </Box>
                             ))}
@@ -832,40 +827,37 @@ const Profile = () => {
                         <Typography variant="body2" color="text.secondary">
                           {post.likes?.length || 0}
                         </Typography>
-                        <IconButton>
-                          <CommentIcon />
+                        <IconButton
+                          size="small"
+                          onClick={() => setOpenCommentBoxId(openCommentBoxId === post._id ? null : post._id)}
+                        >
+                          <CommentIcon fontSize="small" />
                         </IconButton>
-                        <Typography variant="body2" color="text.secondary">
-                          {post.comments?.length || 0}
-                        </Typography>
+                        {openCommentBoxId === post._id && (
+                          <Box sx={{ mt: 0.5 }}>
+                            <TextField
+                              fullWidth
+                              placeholder="Write a comment..."
+                              value={commentTexts[post._id] || ''}
+                              onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
+                              sx={{ mb: 0.5, bgcolor: '#f7f8fa', borderRadius: 1, fontSize: 13 }}
+                              inputProps={{ style: { fontSize: 13 } }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => handleCommentSubmit(post._id)}
+                              disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
+                              sx={{ fontSize: 13, px: 2, py: 0.5, borderRadius: 2 }}
+                            >
+                              Comment
+                            </Button>
+                          </Box>
+                        )}
                         <IconButton>
                           <ShareIcon />
                         </IconButton>
                       </CardActions>
-                      <Box sx={{ p: 2 }}>
-                        <TextField
-                          fullWidth
-                          placeholder="Write a comment..."
-                          value={commentTexts[post._id] || ""}
-                          onChange={(e) =>
-                            setCommentTexts({
-                              ...commentTexts,
-                              [post._id]: e.target.value,
-                            })
-                          }
-                          sx={{ mb: 1 }}
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={() => handleCommentSubmit(post._id)}
-                          disabled={
-                            !commentTexts[post._id]?.trim() ||
-                            addCommentMutation.isLoading
-                          }
-                        >
-                          Comment
-                        </Button>
-                      </Box>
                     </Card>
                   </Grid>
                 );

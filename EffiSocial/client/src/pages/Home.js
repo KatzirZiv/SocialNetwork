@@ -45,6 +45,7 @@ import { useAuth } from '../context/AuthContext';
 import FriendsList from '../components/FriendsList';
 import { Link } from 'react-router-dom';
 import PostMenu from '../components/PostMenu';
+import CommentMenu from '../components/CommentMenu';
 
 const Home = () => {
   const { user } = useAuth();
@@ -66,6 +67,7 @@ const Home = () => {
   const [editPostContent, setEditPostContent] = useState('');
   const [editCommentContent, setEditCommentContent] = useState('');
   const [optimisticLikes, setOptimisticLikes] = useState({});
+  const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['posts'],
@@ -97,7 +99,11 @@ const Home = () => {
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
       queryClient.invalidateQueries(['posts']);
+      setOptimisticLikes({});
     },
+    onError: () => {
+      setOptimisticLikes({});
+    }
   });
 
   const addCommentMutation = useMutation({
@@ -199,7 +205,6 @@ const Home = () => {
   };
 
   const handleLike = (postId) => {
-    // Optimistically update UI
     setOptimisticLikes((prev) => {
       const post = postsList.find((p) => p._id === postId);
       if (!post) return prev;
@@ -209,15 +214,7 @@ const Home = () => {
         [postId]: { liked: !liked }
       };
     });
-    likePostMutation.mutate(postId, {
-      onError: () => {
-        // Revert optimistic update on error
-        setOptimisticLikes((prev) => {
-          const { [postId]: _, ...rest } = prev;
-          return rest;
-        });
-      },
-    });
+    likePostMutation.mutate(postId);
   };
 
   const handleCommentSubmit = (postId) => {
@@ -433,14 +430,10 @@ const Home = () => {
                                 </Typography>
                               </Box>
                               {(user?._id === comment.author?._id || user?.role === 'admin') && (
-                                <>
-                                  <IconButton size="small" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}>
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                  <IconButton size="small" color="error" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}>
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </>
+                                <CommentMenu
+                                  onEdit={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}
+                                  onDelete={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}
+                                />
                               )}
                             </Box>
                           ))}
@@ -465,37 +458,42 @@ const Home = () => {
                           )}
                         </IconButton>
                         <Typography variant="body2" color="text.secondary" sx={{ mr: 1, fontSize: 13 }}>
-                          {post.likes?.length || 0}
+                          {post.likes?.length || 0} likes
                         </Typography>
-                        <IconButton size="small">
+                        <IconButton
+                          size="small"
+                          onClick={() => setOpenCommentBoxId(openCommentBoxId === post._id ? null : post._id)}
+                        >
                           <CommentIcon fontSize="small" />
                         </IconButton>
                         <Typography variant="body2" color="text.secondary" sx={{ mr: 1, fontSize: 13 }}>
-                          {post.comments?.length || 0}
+                          {post.comments?.length || 0} comments
                         </Typography>
                         <IconButton size="small">
                           <ShareIcon fontSize="small" />
                         </IconButton>
                       </Box>
-                      <Box sx={{ mt: 0.5 }}>
-                        <TextField
-                          fullWidth
-                          placeholder="Write a comment..."
-                          value={commentTexts[post._id] || ''}
-                          onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
-                          sx={{ mb: 0.5, bgcolor: '#f7f8fa', borderRadius: 1, fontSize: 13 }}
-                          inputProps={{ style: { fontSize: 13 } }}
-                        />
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleCommentSubmit(post._id)}
-                          disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
-                          sx={{ fontSize: 13, px: 2, py: 0.5, borderRadius: 2 }}
-                        >
-                          Comment
-                        </Button>
-                      </Box>
+                      {openCommentBoxId === post._id && (
+                        <Box sx={{ mt: 0.5 }}>
+                          <TextField
+                            fullWidth
+                            placeholder="Write a comment..."
+                            value={commentTexts[post._id] || ''}
+                            onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
+                            sx={{ mb: 0.5, bgcolor: '#f7f8fa', borderRadius: 1, fontSize: 13 }}
+                            inputProps={{ style: { fontSize: 13 } }}
+                          />
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleCommentSubmit(post._id)}
+                            disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
+                            sx={{ fontSize: 13, px: 2, py: 0.5, borderRadius: 2 }}
+                          >
+                            Comment
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
                     {idx < postsList.length - 1 && <Divider sx={{ my: 2, mx: 'auto', maxWidth: 500 }} />}
                   </React.Fragment>
@@ -547,6 +545,46 @@ const Home = () => {
               disabled={updatePostMutation.isLoading || !editPostContent.trim()}
             >
               Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={editCommentDialogOpen} onClose={() => setEditCommentDialogOpen(false)}>
+          <DialogTitle>Edit Comment</DialogTitle>
+          <DialogContent>
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              value={editCommentContent}
+              onChange={(e) => setEditCommentContent(e.target.value)}
+              sx={{ mt: 2 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditCommentDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={() => updateCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent })}
+              disabled={updateCommentMutation.isLoading || !editCommentContent.trim()}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={deleteCommentDialogOpen} onClose={() => setDeleteCommentDialogOpen(false)}>
+          <DialogTitle>Delete Comment</DialogTitle>
+          <DialogContent>
+            <Typography>Are you sure you want to delete this comment?</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteCommentDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => deleteCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id })}
+              disabled={deleteCommentMutation.isLoading}
+            >
+              Delete
             </Button>
           </DialogActions>
         </Dialog>

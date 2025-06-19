@@ -44,6 +44,7 @@ import {
 import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import PostMenu from '../components/PostMenu';
+import CommentMenu from '../components/CommentMenu';
 
 const Group = () => {
   const { id } = useParams();
@@ -78,6 +79,8 @@ const Group = () => {
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [coverImagePreview, setCoverImagePreview] = useState(null);
   const [optimisticLikes, setOptimisticLikes] = useState({});
+  const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
+  const [commentTexts, setCommentTexts] = useState({});
 
   const {
     data: groupData,
@@ -148,8 +151,12 @@ const Group = () => {
   const likePostMutation = useMutation({
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
+      queryClient.invalidateQueries(['groupPosts', id]);
+      setOptimisticLikes({});
     },
+    onError: () => {
+      setOptimisticLikes({});
+    }
   });
 
   const inviteMemberMutation = useMutation({
@@ -257,14 +264,7 @@ const Group = () => {
         [postId]: { liked: !liked }
       };
     });
-    likePostMutation.mutate(postId, {
-      onError: () => {
-        setOptimisticLikes((prev) => {
-          const { [postId]: _, ...rest } = prev;
-          return rest;
-        });
-      },
-    });
+    likePostMutation.mutate(postId);
   };
 
   const handleInviteFriend = () => {
@@ -615,7 +615,7 @@ const Group = () => {
                           {post.comments.map((comment) => (
                             <Box key={comment._id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                               <Avatar
-                                src={comment.author?.profilePicture}
+                                src={getProfilePicture(comment.author)}
                                 alt={comment.author?.username}
                                 sx={{ mr: 2 }}
                               />
@@ -630,14 +630,10 @@ const Group = () => {
                                 </Typography>
                               </Box>
                               {(currentUser?._id === comment.author?._id || currentUser?.role === 'admin') && (
-                                <>
-                                  <IconButton size="small" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}>
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                  <IconButton size="small" color="error" onClick={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}>
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </>
+                                <CommentMenu
+                                  onEdit={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}
+                                  onDelete={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}
+                                />
                               )}
                             </Box>
                           ))}
@@ -666,8 +662,11 @@ const Group = () => {
                       <Typography variant="body2" color="text.secondary">
                         {post.likes?.length || 0} likes
                       </Typography>
-                      <IconButton>
-                        <CommentIcon />
+                      <IconButton
+                        size="small"
+                        onClick={() => setOpenCommentBoxId(openCommentBoxId === post._id ? null : post._id)}
+                      >
+                        <CommentIcon fontSize="small" />
                       </IconButton>
                       <Typography variant="body2" color="text.secondary">
                         {post.comments?.length || 0} comments
@@ -676,6 +675,27 @@ const Group = () => {
                         <ShareIcon />
                       </IconButton>
                     </CardActions>
+                    {openCommentBoxId === post._id && (
+                      <Box sx={{ mt: 0.5, mx: 2, mb: 2 }}>
+                        <TextField
+                          fullWidth
+                          placeholder="Write a comment..."
+                          value={commentTexts[post._id] || ''}
+                          onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
+                          sx={{ mb: 0.5, bgcolor: '#f7f8fa', borderRadius: 1, fontSize: 13 }}
+                          inputProps={{ style: { fontSize: 13 } }}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => handleCommentSubmit(post._id)}
+                          disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
+                          sx={{ fontSize: 13, px: 2, py: 0.5, borderRadius: 2 }}
+                        >
+                          Comment
+                        </Button>
+                      </Box>
+                    )}
                   </Card>
                 </Grid>
               ))}
