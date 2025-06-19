@@ -40,6 +40,7 @@ import {
 import { posts, groups, users } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import FriendsList from '../components/FriendsList';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
   const { user } = useAuth();
@@ -294,7 +295,9 @@ const Home = () => {
                       />
                       <Box>
                         <Typography variant="subtitle1">
-                          {post.author?.username}
+                          <Link to={`/profile/${post.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                            {post.author?.username}
+                          </Link>
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {new Date(post.createdAt).toLocaleString()}
@@ -338,7 +341,9 @@ const Home = () => {
                             />
                             <Box>
                               <Typography variant="body2">
-                                <strong>{comment.author?.username}</strong> {comment.content}
+                                <Link to={`/profile/${comment.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                                  <strong>{comment.author?.username}</strong>
+                                </Link> {comment.content}
                               </Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {new Date(comment.createdAt).toLocaleString()}

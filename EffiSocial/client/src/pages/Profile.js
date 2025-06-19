@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Container,
@@ -614,7 +614,9 @@ const Profile = () => {
                           />
                           <Box>
                             <Typography variant="subtitle1">
-                              {post.author?.username}
+                              <Link to={`/profile/${post.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                                {post.author?.username}
+                              </Link>
                             </Typography>
                             <Typography
                               variant="caption"
@@ -681,8 +683,9 @@ const Profile = () => {
                                 />
                                 <Box>
                                   <Typography variant="body2">
-                                    <strong>{comment.author?.username}</strong>{" "}
-                                    {comment.content}
+                                    <Link to={`/profile/${comment.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                                      <strong>{comment.author?.username}</strong>
+                                    </Link> {comment.content}
                                   </Typography>
                                   <Typography
                                     variant="caption"
