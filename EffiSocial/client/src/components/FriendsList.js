@@ -46,8 +46,14 @@ const FriendsList = () => {
     removeFriendMutation.mutate(friendId);
   };
 
-  const handleMessage = (friendId) => {
-    navigate(`/messages/${friendId}`);
+  const handleMessage = (friend) => {
+    navigate('/chat', {
+      state: {
+        userId: friend._id,
+        username: friend.username,
+        profilePicture: friend.profilePicture
+      }
+    });
   };
 
   if (isLoading) {
@@ -77,7 +83,7 @@ const FriendsList = () => {
                     <IconButton
                       edge="end"
                       aria-label="message"
-                      onClick={() => handleMessage(friend._id)}
+                      onClick={() => handleMessage(friend)}
                       sx={{ mr: 1 }}
                     >
                       <MessageIcon />
