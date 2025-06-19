@@ -9,7 +9,9 @@ const {
   joinGroup,
   leaveGroup,
   searchGroups,
-  inviteMember
+  inviteMember,
+  removeMember,
+  addMember
 } = require('../controllers/groups');
 const { protect } = require('../middleware/auth');
 
@@ -59,5 +61,11 @@ router.post('/:id/leave', leaveGroup);
 
 // Invite member
 router.post('/:id/invite', inviteMember);
+
+// Remove member (admin only)
+router.post('/:id/remove-member', removeMember);
+
+// Add member (admin only)
+router.post('/:id/add-member', addMember);
 
 module.exports = router; 

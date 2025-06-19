@@ -192,7 +192,7 @@ exports.updatePost = asyncHandler(async (req, res, next) => {
 // @route   DELETE /api/posts/:id
 // @access  Private
 exports.deletePost = asyncHandler(async (req, res, next) => {
-  const post = await Post.findById(req.params.id);
+  const post = await Post.findById(req.params.id).populate('group');
 
   if (!post) {
     return next(
@@ -200,8 +200,17 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // Make sure user is post owner
-  if (post.author.toString() !== req.user.id && req.user.role !== "admin") {
+  // Allow: post author, global admin, or group admin (if post belongs to a group)
+  let isGroupAdmin = false;
+  if (post.group && post.group.admin && post.group.admin.toString() === req.user.id) {
+    isGroupAdmin = true;
+  }
+
+  if (
+    post.author.toString() !== req.user.id &&
+    req.user.role !== "admin" &&
+    !isGroupAdmin
+  ) {
     return next(
       new ErrorResponse(
         `User ${req.user.id} is not authorized to delete this post`,

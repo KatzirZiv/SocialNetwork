@@ -384,4 +384,62 @@ exports.inviteMember = async (req, res) => {
       message: 'Server error'
     });
   }
+};
+
+// @desc    Remove member from group
+// @route   POST /api/groups/:id/remove-member
+// @access  Private (Admin only)
+exports.removeMember = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    const { userId } = req.body;
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    // Only admin can remove
+    if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    // Prevent admin from removing themselves
+    if (userId === group.admin.toString()) {
+      return res.status(400).json({ success: false, message: 'Admin cannot remove themselves' });
+    }
+    // Remove member
+    await group.removeMember(userId);
+    // Remove group from user's groups
+    await User.findByIdAndUpdate(userId, { $pull: { groups: group._id } });
+    res.status(200).json({ success: true, data: group });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Add member to group (admin only)
+// @route   POST /api/groups/:id/add-member
+// @access  Private (Admin only)
+exports.addMember = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    const { userId } = req.body;
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    // Only admin can add
+    if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    // Prevent admin from adding themselves (already a member)
+    if (userId === group.admin.toString()) {
+      return res.status(400).json({ success: false, message: 'Admin is already a member' });
+    }
+    // Add member
+    await group.addMember(userId);
+    // Add group to user's groups
+    await User.findByIdAndUpdate(userId, { $addToSet: { groups: group._id } });
+    res.status(200).json({ success: true, data: group });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 }; 
