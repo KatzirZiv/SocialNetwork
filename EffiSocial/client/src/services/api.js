@@ -187,6 +187,14 @@ export const posts = {
       { content },
       { headers: { "Content-Type": "application/json" } }
     ),
+  updateComment: (postId, commentId, content) =>
+    api.put(
+      `/posts/${postId}/comments/${commentId}`,
+      { content },
+      { headers: { "Content-Type": "application/json" } }
+    ),
+  deleteComment: (postId, commentId) =>
+    api.delete(`/posts/${postId}/comments/${commentId}`),
 };
 
 // Message endpoints
