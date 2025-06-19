@@ -42,6 +42,12 @@ const Chat = () => {
     enabled: !!selectedUser,
   });
 
+  const { data: friendsData, isLoading: friendsLoading } = useQuery({
+    queryKey: ['friends', currentUser?._id],
+    queryFn: () => users.getFriends(currentUser._id),
+    enabled: !!currentUser?._id,
+  });
+
   const sendMessageMutation = useMutation({
     mutationFn: (data) => messages.send(data),
     onSuccess: () => {
@@ -98,21 +104,22 @@ const Chat = () => {
         {/* Conversations List */}
         <Paper sx={{ width: 300, overflow: 'auto' }}>
           <List>
-            {conversations?.data?.map((conversation) => {
-              const otherUser = conversation.participants.find(
-                (p) => p._id !== currentUser._id
+            {(Array.isArray(friendsData?.data?.data) ? friendsData.data.data : []).map((friend) => {
+              // Find conversation with this friend
+              const conversation = (Array.isArray(conversations?.data) ? conversations.data : []).find(c =>
+                c.participants.some(p => p._id === friend._id)
               );
               return (
                 <ListItem
-                  key={conversation._id}
+                  key={friend._id}
                   button
-                  selected={selectedUser?._id === otherUser._id}
-                  onClick={() => setSelectedUser(otherUser)}
+                  selected={selectedUser?._id === friend._id}
+                  onClick={() => setSelectedUser(friend)}
                 >
                   <ListItemAvatar>
                     <Box sx={{ position: 'relative' }}>
-                      <Avatar src={otherUser.avatar} alt={otherUser.username} />
-                      {onlineUsers.includes(otherUser._id) && (
+                      <Avatar src={friend.profilePicture} alt={friend.username} />
+                      {onlineUsers.includes(friend._id) && (
                         <Box
                           sx={{
                             position: 'absolute',
@@ -129,8 +136,8 @@ const Chat = () => {
                     </Box>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={otherUser.username}
-                    secondary={conversation.lastMessage?.content}
+                    primary={friend.username}
+                    secondary={conversation?.lastMessage?.content || 'Start a new chat'}
                   />
                 </ListItem>
               );
@@ -183,36 +190,32 @@ const Chat = () => {
                 {messagesLoading ? (
                   <CircularProgress />
                 ) : (
-                  messagesData?.data?.map((msg) => (
-                    <Box
-                      key={msg._id}
-                      sx={{
-                        display: 'flex',
-                        justifyContent:
-                          msg.sender === currentUser._id ? 'flex-end' : 'flex-start',
-                      }}
-                    >
-                      <Paper
+                  (Array.isArray(messagesData?.data?.data) ? messagesData.data.data : []).map((msg) => {
+                    const isOwn = msg.sender === currentUser._id || msg.sender?._id === currentUser._id;
+                    return (
+                      <Box
+                        key={msg._id}
                         sx={{
-                          p: 1,
-                          maxWidth: '70%',
-                          bgcolor:
-                            msg.sender === currentUser._id
-                              ? 'primary.main'
-                              : 'grey.100',
-                          color:
-                            msg.sender === currentUser._id
-                              ? 'primary.contrastText'
-                              : 'text.primary',
+                          display: 'flex',
+                          justifyContent: isOwn ? 'flex-start' : 'flex-end',
                         }}
                       >
-                        <Typography variant="body1">{msg.content}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(msg.createdAt).toLocaleTimeString()}
-                        </Typography>
-                      </Paper>
-                    </Box>
-                  ))
+                        <Paper
+                          sx={{
+                            p: 1,
+                            maxWidth: '70%',
+                            bgcolor: isOwn ? 'primary.main' : 'grey.100',
+                            color: isOwn ? 'primary.contrastText' : 'text.primary',
+                          }}
+                        >
+                          <Typography variant="body1">{msg.content}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(msg.createdAt).toLocaleTimeString()}
+                          </Typography>
+                        </Paper>
+                      </Box>
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </Box>
