@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Container,
@@ -408,7 +408,9 @@ const Group = () => {
                         />
                         <Box>
                           <Typography variant="subtitle1">
-                            {post.author?.username}
+                            <Link to={`/profile/${post.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                              {post.author?.username}
+                            </Link>
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {new Date(post.createdAt).toLocaleDateString()}
