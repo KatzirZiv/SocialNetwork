@@ -6,6 +6,7 @@ const asyncHandler = require("../middleware/async");
 const ErrorResponse = require("../utils/errorResponse");
 const multer = require("multer");
 const path = require("path");
+const mongoose = require("mongoose");
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -57,9 +58,13 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       req.body.media = `/uploads/${req.file.filename}`;
     }
 
+    // Extra logging for group
+    console.log("Group field received:", req.body.group);
+
     try {
       const post = await Post.create(req.body);
       await post.populate("author", "username profilePicture");
+      await post.populate("group", "name");
       console.log("Post created:", post);
       res.status(201).json({
         success: true,
@@ -76,36 +81,48 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 // @route   GET /api/posts
 // @access  Private
 exports.getPosts = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
+  try {
+    const user = await User.findById(req.user.id);
 
-  // Build query
-  let query = {};
+    // Build query
+    let query = {};
 
-  // If author is specified, only get posts from that author
-  if (req.query.author) {
-    query.author = req.query.author;
-  } else {
-    // Otherwise get posts from user and their friends
-    query.$or = [{ author: req.user.id }, { author: { $in: user.friends } }];
+    // If group is specified, only get posts from that group
+    if (req.query.group) {
+      if (mongoose.Types.ObjectId.isValid(req.query.group)) {
+        query.group = req.query.group;
+      } else {
+        return res.status(400).json({ success: false, message: "Invalid group ID" });
+      }
+    } else if (req.query.author) {
+      query.author = req.query.author;
+    } else {
+      // Otherwise get posts from user and their friends
+      query.$or = [{ author: req.user.id }, { author: { $in: user.friends } }];
+    }
+
+    // Get posts
+    const posts = await Post.find(query)
+      .populate("author", "username profilePicture")
+      .populate("group", "name")
+      .populate("likes", "username")
+      .populate({
+        path: "comments",
+        populate: {
+          path: "author",
+          select: "username profilePicture",
+        },
+      })
+      .sort("-createdAt");
+
+    res.status(200).json({
+      success: true,
+      data: posts,
+    });
+  } catch (err) {
+    console.error("Error in getPosts:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-
-  // Get posts
-  const posts = await Post.find(query)
-    .populate("author", "username profilePicture")
-    .populate("likes", "username")
-    .populate({
-      path: "comments",
-      populate: {
-        path: "author",
-        select: "username profilePicture",
-      },
-    })
-    .sort("-createdAt");
-
-  res.status(200).json({
-    success: true,
-    data: posts,
-  });
 });
 
 // @desc    Get single post

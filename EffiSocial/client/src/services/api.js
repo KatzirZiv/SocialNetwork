@@ -158,7 +158,17 @@ export const groups = {
 
 // Post endpoints
 export const posts = {
-  getAll: () => api.get("/posts"),
+  getAll: (filters) => {
+    let url = "/posts";
+    if (filters && typeof filters === 'object' && Object.keys(filters).length > 0) {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      url += `?${params.toString()}`;
+    }
+    return api.get(url);
+  },
   getById: (id) => api.get(`/posts/${id}`),
   create: (data) => {
     if (data instanceof FormData) {

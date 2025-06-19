@@ -86,7 +86,10 @@ const Group = () => {
     error: postsError,
   } = useQuery({
     queryKey: ["groupPosts", id],
-    queryFn: () => posts.getAll({ group: id }),
+    queryFn: () => {
+      console.log("Fetching group posts for group:", id);
+      return posts.getAll({ group: id });
+    },
   });
 
   const { data: friendsData, isLoading: friendsLoading } = useQuery({
@@ -240,9 +243,10 @@ const Group = () => {
     }
   };
 
+  const group = groupData?.data?.data;
   const filteredFriends =
     friendsData?.data?.data?.filter((friend) => {
-      const isNotMember = !group?.members?.some(
+      const isNotMember = !group || !group.members?.some(
         (member) => member._id === friend._id
       );
       const matchesSearch = friend.username
@@ -255,6 +259,8 @@ const Group = () => {
   const isMember = groupData?.data?.data?.members?.some(
     (member) => member._id === currentUser?._id
   );
+
+  const groupPostsList = groupPosts?.data?.data || [];
 
   if (groupLoading) {
     return (
@@ -287,8 +293,9 @@ const Group = () => {
     );
   }
 
-  const group = groupData.data.data;
-  const posts = groupPosts?.data?.data || [];
+  if (postsError) {
+    console.error("Error loading group posts:", postsError);
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -434,13 +441,13 @@ const Group = () => {
             <Alert severity="error">
               Error loading posts. Please try again later.
             </Alert>
-          ) : posts.length === 0 ? (
+          ) : groupPostsList.length === 0 ? (
             <Alert severity="info">
               No posts yet. Be the first to share something!
             </Alert>
           ) : (
             <Grid columns={12}>
-              {posts.map((post) => (
+              {groupPostsList.map((post) => (
                 <Grid columns={12} key={post._id}>
                   <Card sx={{ mb: 2, boxShadow: 3, '&:hover': { boxShadow: 6 } }}>
                     <CardContent>
