@@ -20,7 +20,7 @@ import { Send as SendIcon } from '@mui/icons-material';
 import { messages, users } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import useSocket from '../hooks/useSocket';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 
 const Chat = () => {
   const { user: currentUser } = useAuth();
@@ -103,6 +103,12 @@ const Chat = () => {
     }
   };
 
+  // Helper to get profile picture or fallback
+  const getProfilePicture = (user) =>
+    user?.profilePicture
+      ? `http://localhost:5000${user.profilePicture}`
+      : `http://localhost:5000/uploads/default-profile.png`;
+
   if (conversationsLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -131,7 +137,7 @@ const Chat = () => {
                 >
                   <ListItemAvatar>
                     <Box sx={{ position: 'relative' }}>
-                      <Avatar src={friend.profilePicture} alt={friend.username} />
+                      <Avatar src={getProfilePicture(friend)} alt={friend.username} />
                       {onlineUsers.includes(friend._id) && (
                         <Box
                           sx={{
@@ -173,13 +179,15 @@ const Chat = () => {
                 }}
               >
                 <Avatar
-                  src={selectedUser.avatar}
+                  src={getProfilePicture(selectedUser)}
                   alt={selectedUser.username}
                   sx={{ mr: 2 }}
                 />
                 <Box>
                   <Typography variant="subtitle1">
-                    {selectedUser.username}
+                    <Link to={`/profile/${selectedUser._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                      {selectedUser.username}
+                    </Link>
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {onlineUsers.includes(selectedUser._id)
@@ -205,14 +213,24 @@ const Chat = () => {
                 ) : (
                   (Array.isArray(messagesData?.data?.data) ? messagesData.data.data : []).map((msg) => {
                     const isOwn = msg.sender === currentUser._id || msg.sender?._id === currentUser._id;
+                    const sender = isOwn ? currentUser : selectedUser;
                     return (
                       <Box
                         key={msg._id}
                         sx={{
                           display: 'flex',
                           justifyContent: isOwn ? 'flex-start' : 'flex-end',
+                          alignItems: 'center',
+                          mb: 1,
                         }}
                       >
+                        {!isOwn && (
+                          <Avatar
+                            src={getProfilePicture(selectedUser)}
+                            alt={selectedUser.username}
+                            sx={{ mr: 1, width: 32, height: 32 }}
+                          />
+                        )}
                         <Paper
                           sx={{
                             p: 1,
@@ -221,11 +239,25 @@ const Chat = () => {
                             color: isOwn ? 'primary.contrastText' : 'text.primary',
                           }}
                         >
+                          {!isOwn && (
+                            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                              <Link to={`/profile/${selectedUser._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                                {selectedUser.username}
+                              </Link>
+                            </Typography>
+                          )}
                           <Typography variant="body1">{msg.content}</Typography>
                           <Typography variant="caption" color="text.secondary">
                             {new Date(msg.createdAt).toLocaleTimeString()}
                           </Typography>
                         </Paper>
+                        {isOwn && (
+                          <Avatar
+                            src={getProfilePicture(currentUser)}
+                            alt={currentUser.username}
+                            sx={{ ml: 1, width: 32, height: 32 }}
+                          />
+                        )}
                       </Box>
                     );
                   })
