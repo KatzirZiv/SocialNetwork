@@ -6,22 +6,19 @@ const useSocket = (userId) => {
 
   useEffect(() => {
     if (!userId) return;
-    // console.log('[Socket] Connecting with userId:', userId);
+    if (socketRef.current) return;
     socketRef.current = io('http://localhost:5000', {
       withCredentials: true
     });
 
     // Connect user
-    if (userId) {
-      socketRef.current.emit('join', userId);
-    }
+    socketRef.current.emit('join', userId);
 
     // Cleanup on unmount
     return () => {
-      if (userId) {
-        socketRef.current.emit('leave', userId);
-      }
+      socketRef.current.emit('leave', userId);
       socketRef.current.disconnect();
+      socketRef.current = null;
     };
   }, [userId]);
 

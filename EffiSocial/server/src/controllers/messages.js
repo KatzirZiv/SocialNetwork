@@ -37,7 +37,11 @@ exports.sendMessage = async (req, res) => {
     await message.populate('receiver', 'username profilePicture');
 
     // Emit message to receiver through Socket.IO
-    req.app.get('io').to(receiver).emit('newMessage', message);
+    req.app.get('io').to(receiver).emit('message:new', {
+      ...message.toObject(),
+      sender: message.sender,
+      receiver: message.receiver
+    });
 
     res.status(201).json({
       success: true,
@@ -113,7 +117,8 @@ exports.getConversations = async (req, res) => {
 
       if (!acc[otherUser._id]) {
         acc[otherUser._id] = {
-          user: otherUser,
+          _id: otherUser._id, // for React key
+          participants: [message.sender, message.receiver],
           lastMessage: message,
           unreadCount: 0
         };

@@ -9,6 +9,7 @@ const path = require('path');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 const fs = require('fs');
+const socketio = require('socket.io');
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +20,12 @@ process.env.NODE_ENV = 'development';
 // Create Express app
 const app = express();
 const server = http.createServer(app);
+const io = socketio(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    credentials: true
+  }
+});
 
 // Middleware
 app.use(cors({
@@ -110,6 +117,48 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/posts', require('./routes/posts'));
 app.use('/api/messages', require('./routes/messages'));
+
+// User to socket mapping
+const userSocketMap = {};
+
+io.on('connection', (socket) => {
+  // Join event: user comes online
+  socket.on('join', (userId) => {
+    userSocketMap[userId] = socket.id;
+    // Broadcast online users
+    io.emit('user:online', Object.keys(userSocketMap));
+    socket.join(userId); // join a room for direct messaging
+  });
+
+  // Leave event: user goes offline
+  socket.on('leave', (userId) => {
+    delete userSocketMap[userId];
+    io.emit('user:online', Object.keys(userSocketMap));
+    socket.leave(userId);
+  });
+
+  // Handle disconnect
+  socket.on('disconnect', () => {
+    // Remove user from map
+    for (const [userId, id] of Object.entries(userSocketMap)) {
+      if (id === socket.id) {
+        delete userSocketMap[userId];
+        break;
+      }
+    }
+    io.emit('user:online', Object.keys(userSocketMap));
+  });
+
+  // Private message event (optional, if you want to handle socket-only messages)
+  socket.on('private_message', ({ to, message, from }) => {
+    if (userSocketMap[to]) {
+      io.to(userSocketMap[to]).emit('message:new', { from, message });
+    }
+  });
+});
+
+// Make io accessible in controllers
+app.set('io', io);
 
 // Error handling middleware
 app.use(errorHandler);
