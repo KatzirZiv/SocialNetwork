@@ -43,8 +43,8 @@ import {
 } from "@mui/icons-material";
 import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import PostMenu from '../components/PostMenu';
-import CommentMenu from '../components/CommentMenu';
+import PostMenu from "../components/PostMenu";
+import CommentMenu from "../components/CommentMenu";
 
 const Group = () => {
   const { id } = useParams();
@@ -70,8 +70,8 @@ const Group = () => {
   const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
-  const [editPostContent, setEditPostContent] = useState('');
-  const [editCommentContent, setEditCommentContent] = useState('');
+  const [editPostContent, setEditPostContent] = useState("");
+  const [editCommentContent, setEditCommentContent] = useState("");
   const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState(null);
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
@@ -151,12 +151,12 @@ const Group = () => {
   const likePostMutation = useMutation({
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
+      queryClient.invalidateQueries(["groupPosts", id]);
       setOptimisticLikes({});
     },
     onError: () => {
       setOptimisticLikes({});
-    }
+    },
   });
 
   const inviteMemberMutation = useMutation({
@@ -171,36 +171,38 @@ const Group = () => {
   const updatePostMutation = useMutation({
     mutationFn: ({ postId, content }) => posts.update(postId, { content }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
+      queryClient.invalidateQueries(["groupPosts", id]);
       setEditPostDialogOpen(false);
       setEditingPost(null);
-      setEditPostContent('');
+      setEditPostContent("");
     },
   });
 
   const deletePostMutation = useMutation({
     mutationFn: (postId) => posts.delete(postId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
+      queryClient.invalidateQueries(["groupPosts", id]);
       setDeletePostDialogOpen(false);
       setEditingPost(null);
     },
   });
 
   const updateCommentMutation = useMutation({
-    mutationFn: ({ postId, commentId, content }) => posts.updateComment(postId, commentId, content),
+    mutationFn: ({ postId, commentId, content }) =>
+      posts.updateComment(postId, commentId, content),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
+      queryClient.invalidateQueries(["groupPosts", id]);
       setEditCommentDialogOpen(false);
       setEditingComment(null);
-      setEditCommentContent('');
+      setEditCommentContent("");
     },
   });
 
   const deleteCommentMutation = useMutation({
-    mutationFn: ({ postId, commentId }) => posts.deleteComment(postId, commentId),
+    mutationFn: ({ postId, commentId }) =>
+      posts.deleteComment(postId, commentId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['groupPosts', id]);
+      queryClient.invalidateQueries(["groupPosts", id]);
       setDeleteCommentDialogOpen(false);
       setEditingComment(null);
     },
@@ -221,6 +223,14 @@ const Group = () => {
       queryClient.invalidateQueries(["group", id]);
       setAddMemberDialogOpen(false);
       setUserToAdd(null);
+    },
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: ({ postId, content }) => posts.addComment(postId, content),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries(["groupPosts", id]);
+      setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
     },
   });
 
@@ -258,10 +268,12 @@ const Group = () => {
     setOptimisticLikes((prev) => {
       const post = groupPostsList.find((p) => p._id === postId);
       if (!post) return prev;
-      const liked = post.likes.includes(currentUser?._id) || (prev[postId] && prev[postId].liked);
+      const liked =
+        post.likes.includes(currentUser?._id) ||
+        (prev[postId] && prev[postId].liked);
       return {
         ...prev,
-        [postId]: { liked: !liked }
+        [postId]: { liked: !liked },
       };
     });
     likePostMutation.mutate(postId);
@@ -298,7 +310,7 @@ const Group = () => {
   const handleUploadCoverImage = () => {
     if (!coverImageFile) return;
     const formData = new FormData();
-    formData.append('coverImage', coverImageFile);
+    formData.append("coverImage", coverImageFile);
     updateGroupMutation.mutate(formData, {
       onSuccess: () => {
         setCoverImageFile(null);
@@ -307,12 +319,17 @@ const Group = () => {
     });
   };
 
+  const handleCommentSubmit = (postId) => {
+    const content = commentTexts[postId]?.trim();
+    if (!content) return;
+    addCommentMutation.mutate({ postId, content });
+  };
+
   const group = groupData?.data?.data;
   const filteredFriends =
     friendsData?.data?.data?.filter((friend) => {
-      const isNotMember = !group || !group.members?.some(
-        (member) => member._id === friend._id
-      );
+      const isNotMember =
+        !group || !group.members?.some((member) => member._id === friend._id);
       const matchesSearch = friend.username
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
@@ -334,7 +351,7 @@ const Group = () => {
 
   useEffect(() => {
     if (editPostDialogOpen && editingPost) {
-      setEditPostContent(editingPost.content || '');
+      setEditPostContent(editingPost.content || "");
     }
   }, [editPostDialogOpen, editingPost]);
 
@@ -376,17 +393,35 @@ const Group = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Cover Image Section */}
-      <Box sx={{ position: 'relative', mb: 3 }}>
+      <Box sx={{ position: "relative", mb: 3 }}>
         <img
-          src={group.coverImage ? `http://localhost:5000${group.coverImage}` : 'http://localhost:5000/uploads/default_cover.png'}
+          src={
+            group.coverImage
+              ? `http://localhost:5000${group.coverImage}`
+              : "http://localhost:5000/uploads/default_cover.png"
+          }
           alt="Group Cover"
-          style={{ width: '100%', height: 240, objectFit: 'cover', borderRadius: 12 }}
+          style={{
+            width: "100%",
+            height: 240,
+            objectFit: "cover",
+            borderRadius: 12,
+          }}
         />
         {isAdmin && (
-          <Box sx={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+            }}
+          >
             <input
               accept="image/*"
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
               id="group-cover-image-upload"
               type="file"
               onChange={handleCoverImageChange}
@@ -410,12 +445,28 @@ const Group = () => {
           </Box>
         )}
         {coverImagePreview && (
-          <Box sx={{ position: 'absolute', top: 16, left: 16, bgcolor: 'background.paper', p: 1, borderRadius: 2, boxShadow: 2 }}>
+          <Box
+            sx={{
+              position: "absolute",
+              top: 16,
+              left: 16,
+              bgcolor: "background.paper",
+              p: 1,
+              borderRadius: 2,
+              boxShadow: 2,
+            }}
+          >
             <Typography variant="caption">Preview:</Typography>
             <img
               src={coverImagePreview}
               alt="Preview"
-              style={{ width: 120, height: 60, objectFit: 'cover', borderRadius: 8, marginTop: 4 }}
+              style={{
+                width: 120,
+                height: 60,
+                objectFit: "cover",
+                borderRadius: 8,
+                marginTop: 4,
+              }}
             />
           </Box>
         )}
@@ -570,7 +621,9 @@ const Group = () => {
             <Grid columns={12}>
               {groupPostsList.map((post) => (
                 <Grid columns={12} key={post._id}>
-                  <Card sx={{ mb: 2, boxShadow: 3, '&:hover': { boxShadow: 6 } }}>
+                  <Card
+                    sx={{ mb: 2, boxShadow: 3, "&:hover": { boxShadow: 6 } }}
+                  >
                     <CardContent>
                       <Box
                         sx={{ display: "flex", alignItems: "center", mb: 2 }}
@@ -582,7 +635,14 @@ const Group = () => {
                         />
                         <Box>
                           <Typography variant="subtitle1">
-                            <Link to={`/profile/${post.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                            <Link
+                              to={`/profile/${post.author?._id}`}
+                              style={{
+                                textDecoration: "none",
+                                color: "inherit",
+                                fontWeight: 500,
+                              }}
+                            >
                               {post.author?.username}
                             </Link>
                           </Typography>
@@ -595,16 +655,25 @@ const Group = () => {
                       {post.media && (
                         <Box sx={{ mb: 2 }}>
                           <img
-                            src={post.media}
+                            src={`http://localhost:5000${post.media}`}
                             alt="Post media"
                             style={{ maxWidth: "100%", borderRadius: 8 }}
                           />
                         </Box>
                       )}
-                      {(currentUser?._id === post.author?._id || currentUser?.role === 'admin' || isAdmin) && (
+                      {(currentUser?._id === post.author?._id ||
+                        currentUser?.role === "admin" ||
+                        isAdmin) && (
                         <PostMenu
-                          onEdit={() => { setEditingPost(post); setEditPostContent(post.content); setEditPostDialogOpen(true); }}
-                          onDelete={() => { setEditingPost(post); setDeletePostDialogOpen(true); }}
+                          onEdit={() => {
+                            setEditingPost(post);
+                            setEditPostContent(post.content);
+                            setEditPostDialogOpen(true);
+                          }}
+                          onDelete={() => {
+                            setEditingPost(post);
+                            setDeletePostDialogOpen(true);
+                          }}
                         />
                       )}
                       {post.comments && post.comments.length > 0 && (
@@ -613,7 +682,14 @@ const Group = () => {
                             Comments
                           </Typography>
                           {post.comments.map((comment) => (
-                            <Box key={comment._id} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Box
+                              key={comment._id}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                mb: 1,
+                              }}
+                            >
                               <Avatar
                                 src={getProfilePicture(comment.author)}
                                 alt={comment.author?.username}
@@ -621,18 +697,43 @@ const Group = () => {
                               />
                               <Box>
                                 <Typography variant="body2">
-                                  <Link to={`/profile/${comment.author?._id}`} style={{ textDecoration: 'none', color: 'inherit', fontWeight: 500 }}>
+                                  <Link
+                                    to={`/profile/${comment.author?._id}`}
+                                    style={{
+                                      textDecoration: "none",
+                                      color: "inherit",
+                                      fontWeight: 500,
+                                    }}
+                                  >
                                     <strong>{comment.author?.username}</strong>
-                                  </Link> {comment.content}
+                                  </Link>{" "}
+                                  {comment.content}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   {new Date(comment.createdAt).toLocaleString()}
                                 </Typography>
                               </Box>
-                              {(currentUser?._id === comment.author?._id || currentUser?.role === 'admin') && (
+                              {(currentUser?._id === comment.author?._id ||
+                                currentUser?.role === "admin") && (
                                 <CommentMenu
-                                  onEdit={() => { setEditingComment({ ...comment, postId: post._id }); setEditCommentContent(comment.content); setEditCommentDialogOpen(true); }}
-                                  onDelete={() => { setEditingComment({ ...comment, postId: post._id }); setDeleteCommentDialogOpen(true); }}
+                                  onEdit={() => {
+                                    setEditingComment({
+                                      ...comment,
+                                      postId: post._id,
+                                    });
+                                    setEditCommentContent(comment.content);
+                                    setEditCommentDialogOpen(true);
+                                  }}
+                                  onDelete={() => {
+                                    setEditingComment({
+                                      ...comment,
+                                      postId: post._id,
+                                    });
+                                    setDeleteCommentDialogOpen(true);
+                                  }}
                                 />
                               )}
                             </Box>
@@ -644,16 +745,22 @@ const Group = () => {
                     <CardActions>
                       <IconButton
                         onClick={() => handleLike(post._id)}
-                        color={((optimisticLikes[post._id]?.liked !== undefined
-                          ? optimisticLikes[post._id].liked
-                          : post.likes?.includes(currentUser?._id))
-                          ? 'primary'
-                          : 'default')}
+                        color={
+                          (
+                            optimisticLikes[post._id]?.liked !== undefined
+                              ? optimisticLikes[post._id].liked
+                              : post.likes?.includes(currentUser?._id)
+                          )
+                            ? "primary"
+                            : "default"
+                        }
                         size="small"
                       >
-                        {(optimisticLikes[post._id]?.liked !== undefined
-                          ? optimisticLikes[post._id].liked
-                          : post.likes?.includes(currentUser?._id)) ? (
+                        {(
+                          optimisticLikes[post._id]?.liked !== undefined
+                            ? optimisticLikes[post._id].liked
+                            : post.likes?.includes(currentUser?._id)
+                        ) ? (
                           <ThumbUpIcon fontSize="small" />
                         ) : (
                           <ThumbUpOutlinedIcon fontSize="small" />
@@ -664,7 +771,11 @@ const Group = () => {
                       </Typography>
                       <IconButton
                         size="small"
-                        onClick={() => setOpenCommentBoxId(openCommentBoxId === post._id ? null : post._id)}
+                        onClick={() =>
+                          setOpenCommentBoxId(
+                            openCommentBoxId === post._id ? null : post._id
+                          )
+                        }
                       >
                         <CommentIcon fontSize="small" />
                       </IconButton>
@@ -680,16 +791,29 @@ const Group = () => {
                         <TextField
                           fullWidth
                           placeholder="Write a comment..."
-                          value={commentTexts[post._id] || ''}
-                          onChange={(e) => setCommentTexts({ ...commentTexts, [post._id]: e.target.value })}
-                          sx={{ mb: 0.5, bgcolor: '#f7f8fa', borderRadius: 1, fontSize: 13 }}
+                          value={commentTexts[post._id] || ""}
+                          onChange={(e) =>
+                            setCommentTexts({
+                              ...commentTexts,
+                              [post._id]: e.target.value,
+                            })
+                          }
+                          sx={{
+                            mb: 0.5,
+                            bgcolor: "#f7f8fa",
+                            borderRadius: 1,
+                            fontSize: 13,
+                          }}
                           inputProps={{ style: { fontSize: 13 } }}
                         />
                         <Button
                           variant="contained"
                           size="small"
                           onClick={() => handleCommentSubmit(post._id)}
-                          disabled={!commentTexts[post._id]?.trim() || addCommentMutation.isLoading}
+                          disabled={
+                            !commentTexts[post._id]?.trim() ||
+                            addCommentMutation.isLoading
+                          }
                           sx={{ fontSize: 13, px: 2, py: 0.5, borderRadius: 2 }}
                         >
                           Comment
@@ -741,7 +865,10 @@ const Group = () => {
                   }
                 >
                   <ListItemAvatar>
-                    <Avatar src={getProfilePicture(member)} alt={member.username} />
+                    <Avatar
+                      src={getProfilePicture(member)}
+                      alt={member.username}
+                    />
                   </ListItemAvatar>
                   <ListItemText
                     primary={member.username}
@@ -839,7 +966,10 @@ const Group = () => {
             renderOption={(props, option) => (
               <ListItem {...props}>
                 <ListItemAvatar>
-                  <Avatar src={getProfilePicture(option)} alt={option.username} />
+                  <Avatar
+                    src={getProfilePicture(option)}
+                    alt={option.username}
+                  />
                 </ListItemAvatar>
                 <ListItemText primary={option.username} />
               </ListItem>
@@ -861,7 +991,10 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={editPostDialogOpen} onClose={() => setEditPostDialogOpen(false)}>
+      <Dialog
+        open={editPostDialogOpen}
+        onClose={() => setEditPostDialogOpen(false)}
+      >
         <DialogTitle>Edit Post</DialogTitle>
         <DialogContent>
           <TextField
@@ -877,7 +1010,12 @@ const Group = () => {
           <Button onClick={() => setEditPostDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
-            onClick={() => updatePostMutation.mutate({ postId: editingPost._id, content: editPostContent })}
+            onClick={() =>
+              updatePostMutation.mutate({
+                postId: editingPost._id,
+                content: editPostContent,
+              })
+            }
             disabled={updatePostMutation.isLoading || !editPostContent.trim()}
           >
             Save
@@ -885,7 +1023,10 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deletePostDialogOpen} onClose={() => setDeletePostDialogOpen(false)}>
+      <Dialog
+        open={deletePostDialogOpen}
+        onClose={() => setDeletePostDialogOpen(false)}
+      >
         <DialogTitle>Delete Post</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this post?</Typography>
@@ -903,7 +1044,10 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={editCommentDialogOpen} onClose={() => setEditCommentDialogOpen(false)}>
+      <Dialog
+        open={editCommentDialogOpen}
+        onClose={() => setEditCommentDialogOpen(false)}
+      >
         <DialogTitle>Edit Comment</DialogTitle>
         <DialogContent>
           <TextField
@@ -916,28 +1060,48 @@ const Group = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditCommentDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setEditCommentDialogOpen(false)}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
-            onClick={() => updateCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent })}
-            disabled={updateCommentMutation.isLoading || !editCommentContent.trim()}
+            onClick={() =>
+              updateCommentMutation.mutate({
+                postId: editingComment.postId,
+                commentId: editingComment._id,
+                content: editCommentContent,
+              })
+            }
+            disabled={
+              updateCommentMutation.isLoading || !editCommentContent.trim()
+            }
           >
             Save
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteCommentDialogOpen} onClose={() => setDeleteCommentDialogOpen(false)}>
+      <Dialog
+        open={deleteCommentDialogOpen}
+        onClose={() => setDeleteCommentDialogOpen(false)}
+      >
         <DialogTitle>Delete Comment</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this comment?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteCommentDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteCommentDialogOpen(false)}>
+            Cancel
+          </Button>
           <Button
             variant="contained"
             color="error"
-            onClick={() => deleteCommentMutation.mutate({ postId: editingComment.postId, commentId: editingComment._id })}
+            onClick={() =>
+              deleteCommentMutation.mutate({
+                postId: editingComment.postId,
+                commentId: editingComment._id,
+              })
+            }
             disabled={deleteCommentMutation.isLoading}
           >
             Delete
@@ -945,16 +1109,29 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={removeMemberDialogOpen} onClose={() => setRemoveMemberDialogOpen(false)}>
+      <Dialog
+        open={removeMemberDialogOpen}
+        onClose={() => setRemoveMemberDialogOpen(false)}
+      >
         <DialogTitle>Remove Member</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to remove {memberToRemove?.username} from the group?</Typography>
+          <Typography>
+            Are you sure you want to remove {memberToRemove?.username} from the
+            group?
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRemoveMemberDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setRemoveMemberDialogOpen(false)}>
+            Cancel
+          </Button>
           <Button
             color="error"
-            onClick={() => removeMemberMutation.mutate({ groupId: id, userId: memberToRemove._id })}
+            onClick={() =>
+              removeMemberMutation.mutate({
+                groupId: id,
+                userId: memberToRemove._id,
+              })
+            }
             disabled={removeMemberMutation.isLoading}
           >
             Remove
@@ -962,7 +1139,10 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={addMemberDialogOpen} onClose={() => setAddMemberDialogOpen(false)}>
+      <Dialog
+        open={addMemberDialogOpen}
+        onClose={() => setAddMemberDialogOpen(false)}
+      >
         <DialogTitle>Add Member</DialogTitle>
         <DialogContent>
           <Autocomplete
@@ -970,13 +1150,18 @@ const Group = () => {
             getOptionLabel={(option) => option.username}
             value={userToAdd}
             onChange={(_, value) => setUserToAdd(value)}
-            renderInput={(params) => <TextField {...params} label="Select Friend" />}
+            renderInput={(params) => (
+              <TextField {...params} label="Select Friend" />
+            )}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddMemberDialogOpen(false)}>Cancel</Button>
           <Button
-            onClick={() => userToAdd && addMemberMutation.mutate({ groupId: id, userId: userToAdd._id })}
+            onClick={() =>
+              userToAdd &&
+              addMemberMutation.mutate({ groupId: id, userId: userToAdd._id })
+            }
             disabled={addMemberMutation.isLoading || !userToAdd}
           >
             Add
