@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   AppBar,
   Box,
@@ -20,7 +20,7 @@ import {
   Divider,
   Badge,
   ListItemAvatar,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
@@ -30,14 +30,14 @@ import {
   Logout as LogoutIcon,
   AccountCircle,
   Notifications as NotificationsIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import { Link as RouterLink } from 'react-router-dom';
-import useNotifications from '../hooks/useNotifications';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { users } from '../services/api';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
+} from "@mui/icons-material";
+import { useAuth } from "../context/AuthContext";
+import { Link as RouterLink } from "react-router-dom";
+import useNotifications from "../hooks/useNotifications";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { users } from "../services/api";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -46,14 +46,15 @@ const Layout = ({ children }) => {
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { notifications, unreadCount, fetchNotifications, markAsRead } = useNotifications(user?._id || user?.id);
+  const { notifications, unreadCount, fetchNotifications, markAsRead } =
+    useNotifications(user?._id || user?.id);
   const queryClient = useQueryClient();
 
   const acceptRequestMutation = useMutation({
     mutationFn: (requestId) => users.acceptFriendRequest(requestId),
     onSuccess: () => {
       fetchNotifications();
-      queryClient.invalidateQueries(['friends']);
+      queryClient.invalidateQueries(["friends"]);
     },
   });
 
@@ -83,22 +84,22 @@ const Layout = ({ children }) => {
   const handleProfile = () => {
     handleClose();
     if (!user) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    
+
     const userId = user._id || user.id;
     if (!userId) {
       return;
     }
-    
+
     navigate(`/profile/${userId}`);
   };
 
   const handleLogout = () => {
     handleClose();
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const handleNotificationsClick = (event) => {
@@ -111,9 +112,9 @@ const Layout = ({ children }) => {
   };
 
   const menuItems = [
-    { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'Groups', icon: <GroupIcon />, path: '/groups' },
-    { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
+    { text: "Home", icon: <HomeIcon />, path: "/" },
+    { text: "Groups", icon: <GroupIcon />, path: "/groups" },
+    { text: "Chat", icon: <ChatIcon />, path: "/chat" },
   ];
 
   const handleNavigation = (path) => {
@@ -122,7 +123,7 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <AppBar position="static">
         <Toolbar>
           <IconButton
@@ -142,15 +143,15 @@ const Layout = ({ children }) => {
             to="/"
             sx={{
               flexGrow: 1,
-              textDecoration: 'none',
-              color: 'inherit',
+              textDecoration: "none",
+              color: "inherit",
             }}
           >
-            EffiSocial
+            PING PONG
           </Typography>
 
           {user ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <IconButton color="inherit" component={RouterLink} to="/groups">
                 <GroupIcon />
               </IconButton>
@@ -179,16 +180,27 @@ const Layout = ({ children }) => {
                   <MenuItem disabled>No notifications</MenuItem>
                 ) : (
                   notifications.map((notification) => (
-                    <MenuItem key={notification._id} sx={{ alignItems: 'flex-start' }}>
+                    <MenuItem
+                      key={notification._id}
+                      sx={{ alignItems: "flex-start" }}
+                    >
                       <ListItemAvatar>
                         <Avatar src={notification.avatar} />
                       </ListItemAvatar>
                       <ListItemText
                         primary={notification.message}
-                        secondary={new Date(notification.createdAt).toLocaleString()}
+                        secondary={new Date(
+                          notification.createdAt
+                        ).toLocaleString()}
                       />
-                      {notification.type === 'friend_request_incoming' && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {notification.type === "friend_request_incoming" && (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                          }}
+                        >
                           <Button
                             size="small"
                             color="primary"
@@ -223,7 +235,13 @@ const Layout = ({ children }) => {
               >
                 {user.profilePicture ? (
                   <Avatar
-                    src={user.profilePicture ? `http://localhost:5000${user.profilePicture}?t=${Date.now()}` : `http://localhost:5000/default-profile.png?t=${Date.now()}`}
+                    src={
+                      user.profilePicture
+                        ? `http://localhost:5000${
+                            user.profilePicture
+                          }?t=${Date.now()}`
+                        : `http://localhost:5000/default-profile.png?t=${Date.now()}`
+                    }
                     alt={user.username}
                     sx={{ width: 32, height: 32 }}
                     onError={(e) => {
@@ -238,13 +256,13 @@ const Layout = ({ children }) => {
                 id="menu-appbar"
                 anchorEl={userMenuAnchorEl}
                 anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
+                  vertical: "bottom",
+                  horizontal: "right",
                 }}
                 keepMounted
                 transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
+                  vertical: "top",
+                  horizontal: "right",
                 }}
                 open={Boolean(userMenuAnchorEl)}
                 onClose={handleClose}
@@ -328,9 +346,9 @@ const Layout = ({ children }) => {
         sx={{
           py: 3,
           px: 2,
-          mt: 'auto',
+          mt: "auto",
           backgroundColor: (theme) =>
-            theme.palette.mode === 'light'
+            theme.palette.mode === "light"
               ? theme.palette.grey[200]
               : theme.palette.grey[800],
         }}
@@ -345,4 +363,4 @@ const Layout = ({ children }) => {
   );
 };
 
-export default Layout; 
+export default Layout;
