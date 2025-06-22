@@ -23,6 +23,8 @@ import {
   Tabs,
   Tab,
   Alert,
+  List,
+  ListItem,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -145,16 +147,8 @@ const Profile = () => {
             data: oldPosts.map((p) => {
               if (p._id === postId) {
                 const newLikes = isLiked
-                  ? p.likes.filter(
-                      (like) => (like._id || like) !== currentUser?._id
-                    )
-                  : [
-                      ...p.likes,
-                      {
-                        _id: currentUser?._id,
-                        username: currentUser?.username,
-                      },
-                    ];
+                  ? p.likes.filter((like) => like !== currentUser?._id)
+                  : [...p.likes, currentUser?._id];
                 return { ...p, likes: newLikes };
               }
               return p;
@@ -360,9 +354,7 @@ const Profile = () => {
     const postsList = userPosts?.data?.data || [];
     const post = postsList.find((p) => p._id === postId);
     if (!post || !currentUser) return;
-    const isLiked = post.likes.some(
-      (like) => like === currentUser._id || like?._id === currentUser._id
-    );
+    const isLiked = post.likes.includes(currentUser._id);
     likePostMutation.mutate({ postId, isLiked });
   };
 
@@ -476,6 +468,12 @@ const Profile = () => {
   //   profileId: id,
   //   friends: profileData.data.friends,
   // });
+
+  // Helper to check if a file is an image
+  const isImageFile = (filename) => {
+    if (!filename) return false;
+    return /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(filename);
+  };
 
   return (
     <Container maxWidth="md">
@@ -741,12 +739,18 @@ const Profile = () => {
           ) : (
             <Grid container spacing={3}>
               {postsList.map((post) => {
-                // console.log("Rendering post:", post);
+                const isLikedByCurrentUser = post.likes.some(
+                  (like) =>
+                    like === currentUser?._id || like?._id === currentUser?._id
+                );
+                const hasCommentedByCurrentUser = post.comments.some(
+                  (comment) =>
+                    comment.author === currentUser?._id ||
+                    comment.author?._id === currentUser?._id
+                );
                 return (
                   <Grid columns={12} key={post._id}>
-                    <Card
-                      sx={{ mb: 2, boxShadow: 3, "&:hover": { boxShadow: 6 } }}
-                    >
+                    <Card sx={{ mb: 3 }}>
                       <CardContent>
                         <Box
                           sx={{ display: "flex", alignItems: "center", mb: 2 }}
@@ -755,31 +759,26 @@ const Profile = () => {
                             src={
                               post.author?.profilePicture
                                 ? `http://localhost:5000${post.author.profilePicture}`
-                                : `http://localhost:5000/default-profile.png`
+                                : "/default-profile.png"
                             }
                             alt={post.author?.username}
+                            component={Link}
+                            to={`/profile/${post.author?._id}`}
                             sx={{ mr: 2 }}
                             onError={(e) => {
                               e.target.src = `http://localhost:5000/default-profile.png`;
                             }}
                           />
-                          <Box>
-                            <Typography variant="subtitle1">
-                              <Link
-                                to={`/profile/${post.author?._id}`}
-                                style={{
-                                  textDecoration: "none",
-                                  color: "inherit",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {post.author?.username}
-                              </Link>
-                            </Typography>
+                          <Box sx={{ flexGrow: 1 }}>
                             <Typography
-                              variant="caption"
-                              color="text.secondary"
+                              variant="h6"
+                              component={Link}
+                              to={`/profile/${post.author?._id}`}
+                              sx={{ textDecoration: "none", color: "inherit" }}
                             >
+                              {post.author?.username}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
                               {new Date(post.createdAt).toLocaleString()}
                             </Typography>
                           </Box>
@@ -792,104 +791,29 @@ const Profile = () => {
                           {post.content}
                         </Typography>
                         {post.media && (
-                          <Box
-                            component="img"
-                            src={`http://localhost:5000${post.media}`}
-                            alt="Post media"
-                            sx={{
-                              width: "100%",
-                              maxHeight: 400,
-                              objectFit: "cover",
-                              borderRadius: 1,
-                            }}
-                            onError={(e) => {
-                              // console.error("Error loading image:", e);
-                              // console.log("Failed image path:", e.target.src);
-                              e.target.src = `http://localhost:5000/default-post.png`;
-                            }}
-                            onLoad={(e) => {
-                              // console.log(
-                              //   "Successfully loaded image:",
-                              //   e.target.src
-                              // );
-                            }}
-                          />
-                        )}
-                        {post.comments?.length > 0 && (
                           <Box sx={{ mt: 2 }}>
-                            <Typography variant="subtitle2" gutterBottom>
-                              Comments
-                            </Typography>
-                            {post.comments.map((comment) => (
-                              <Box
-                                key={comment._id}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  mb: 1,
+                            {isImageFile(post.media) ? (
+                              <img
+                                src={`http://localhost:5000${post.media}`}
+                                alt="Post media"
+                                style={{
+                                  maxWidth: "100%",
+                                  borderRadius: "8px",
                                 }}
+                                onError={(e) => {
+                                  e.target.src = `http://localhost:5000/default-post.png`;
+                                }}
+                              />
+                            ) : (
+                              <Button
+                                variant="outlined"
+                                href={`http://localhost:5000${post.media}`}
+                                download
+                                sx={{ mt: 1 }}
                               >
-                                <Avatar
-                                  src={
-                                    comment.author?.profilePicture
-                                      ? `http://localhost:5000${
-                                          comment.author.profilePicture
-                                        }?t=${Date.now()}`
-                                      : `http://localhost:5000/default-profile.png?t=${Date.now()}`
-                                  }
-                                  alt={comment.author?.username}
-                                  sx={{ mr: 1, width: 24, height: 24 }}
-                                  onError={(e) => {
-                                    e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
-                                  }}
-                                />
-                                <Box>
-                                  <Typography variant="body2">
-                                    <Link
-                                      to={`/profile/${comment.author?._id}`}
-                                      style={{
-                                        textDecoration: "none",
-                                        color: "inherit",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      <strong>
-                                        {comment.author?.username}
-                                      </strong>
-                                    </Link>{" "}
-                                    {comment.content}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    {new Date(
-                                      comment.createdAt
-                                    ).toLocaleString()}
-                                  </Typography>
-                                </Box>
-                                {(currentUser?._id === comment.author?._id ||
-                                  currentUser?.role === "admin") && (
-                                  <CommentMenu
-                                    onEdit={() => {
-                                      setEditingComment({
-                                        ...comment,
-                                        postId: post._id,
-                                      });
-                                      setEditCommentContent(comment.content);
-                                      setEditCommentDialogOpen(true);
-                                    }}
-                                    onDelete={() => {
-                                      setEditingComment({
-                                        ...comment,
-                                        postId: post._id,
-                                      });
-                                      setDeleteCommentDialogOpen(true);
-                                    }}
-                                  />
-                                )}
-                              </Box>
-                            ))}
+                                Download Attachment
+                              </Button>
+                            )}
                           </Box>
                         )}
                       </CardContent>
@@ -897,20 +821,10 @@ const Profile = () => {
                       <CardActions sx={{ justifyContent: "space-around" }}>
                         <Button
                           sx={{
-                            color: post.likes.some(
-                              (like) =>
-                                like === currentUser._id ||
-                                like?._id === currentUser._id
-                            )
-                              ? "#ec4899"
-                              : "inherit",
+                            color: isLikedByCurrentUser ? "#ec4899" : "inherit",
                           }}
                           startIcon={
-                            post.likes.some(
-                              (like) =>
-                                like === currentUser._id ||
-                                like?._id === currentUser._id
-                            ) ? (
+                            isLikedByCurrentUser ? (
                               <FavoriteIcon />
                             ) : (
                               <FavoriteBorderIcon />
@@ -922,11 +836,7 @@ const Profile = () => {
                         </Button>
                         <Button
                           sx={{
-                            color: post.comments.some(
-                              (comment) =>
-                                comment.author === currentUser._id ||
-                                comment.author?._id === currentUser._id
-                            )
+                            color: hasCommentedByCurrentUser
                               ? "#ec4899"
                               : "inherit",
                           }}
@@ -948,8 +858,10 @@ const Profile = () => {
                       </CardActions>
                       {openCommentBoxId === post._id && (
                         <Box sx={{ p: 2 }}>
+                          <Divider sx={{ mb: 2 }} />
                           <TextField
                             fullWidth
+                            variant="outlined"
                             placeholder="Write a comment..."
                             value={commentTexts[post._id] || ""}
                             onChange={(e) =>
@@ -958,34 +870,105 @@ const Profile = () => {
                                 [post._id]: e.target.value,
                               })
                             }
-                            sx={{
-                              mb: 0.5,
-                              bgcolor: "#f7f8fa",
-                              borderRadius: 1,
-                              fontSize: 13,
-                            }}
-                            inputProps={{ style: { fontSize: 13 } }}
                           />
-                          <Button
-                            variant="contained"
-                            size="small"
-                            onClick={() => handleCommentSubmit(post._id)}
-                            disabled={
-                              !commentTexts[post._id]?.trim() ||
-                              addCommentMutation.isLoading
-                            }
-                            sx={{
-                              fontSize: 13,
-                              px: 2,
-                              py: 0.5,
-                              borderRadius: 2,
-                              backgroundColor: "#ffb6d5",
-                              color: "#fff",
-                              "&:hover": { backgroundColor: "#ffd1ea" },
-                            }}
-                          >
-                            Comment
-                          </Button>
+                          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => handleCommentSubmit(post._id)}
+                              disabled={addCommentMutation.isLoading}
+                            >
+                              Post Comment
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => setOpenCommentBoxId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </Box>
+                        </Box>
+                      )}
+                      {post.comments.length > 0 && (
+                        <Box sx={{ p: 2 }}>
+                          <List>
+                            {post.comments.map((comment) => (
+                              <ListItem
+                                key={comment._id}
+                                alignItems="flex-start"
+                              >
+                                <Avatar
+                                  src={
+                                    comment.author?.profilePicture
+                                      ? `http://localhost:5000${comment.author.profilePicture}`
+                                      : "/default-profile.png"
+                                  }
+                                  alt={comment.author?.username}
+                                  sx={{ mr: 2 }}
+                                  onError={(e) => {
+                                    e.target.src = `http://localhost:5000/default-profile.png`;
+                                  }}
+                                />
+                                <Box>
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 1,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="subtitle2"
+                                      component={Link}
+                                      to={`/profile/${comment.author?._id}`}
+                                      sx={{
+                                        textDecoration: "none",
+                                        color: "inherit",
+                                      }}
+                                    >
+                                      {comment.author?.username}
+                                    </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      color="textSecondary"
+                                    >
+                                      {new Date(
+                                        comment.createdAt
+                                      ).toLocaleString()}
+                                    </Typography>
+                                    {comment.author?._id ===
+                                      currentUser?._id && (
+                                      <CommentMenu
+                                        comment={comment}
+                                        user={currentUser}
+                                        onEdit={() => {
+                                          setEditingComment({
+                                            ...comment,
+                                            postId: post._id,
+                                          });
+                                          setEditCommentContent(
+                                            comment.content
+                                          );
+                                          setEditCommentDialogOpen(true);
+                                        }}
+                                        onDelete={() => {
+                                          setEditingComment({
+                                            ...comment,
+                                            postId: post._id,
+                                          });
+                                          setDeleteCommentDialogOpen(true);
+                                        }}
+                                      />
+                                    )}
+                                  </Box>
+                                  <Typography variant="body1">
+                                    {comment.content}
+                                  </Typography>
+                                </Box>
+                              </ListItem>
+                            ))}
+                          </List>
                         </Box>
                       )}
                     </Card>
