@@ -212,14 +212,13 @@ const Profile = () => {
   });
 
   const removeFriendMutation = useMutation({
-    mutationFn: () => users.removeFriend(id),
+    mutationFn: () => users.removeFriend(currentUser._id, id),
     onSuccess: () => {
       queryClient.invalidateQueries(["user", id]);
       setMessage("Friend removed successfully");
       setMessageType("success");
     },
     onError: (error) => {
-      // console.error("Error removing friend:", error);
       setMessage(error.response?.data?.error || "Error removing friend");
       setMessageType("error");
     },
@@ -607,8 +606,10 @@ const Profile = () => {
               {isFriend ? (
                 <Button
                   variant="contained"
-                  startIcon={<PersonAddIcon />}
-                  disabled
+                  startIcon={<PersonRemoveIcon />}
+                  color="error"
+                  onClick={() => removeFriendMutation.mutate()}
+                  disabled={removeFriendMutation.isLoading}
                   sx={{
                     borderRadius: "20px",
                     textTransform: "none",
@@ -616,7 +617,7 @@ const Profile = () => {
                     px: 3,
                   }}
                 >
-                  Friends
+                  Remove Friend
                 </Button>
               ) : hasPendingRequest ? (
                 <Button
