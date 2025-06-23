@@ -42,6 +42,7 @@ const Groups = () => {
     name: "",
     description: "",
   });
+  const [createError, setCreateError] = useState("");
 
   // Fetch all groups
   const {
@@ -60,6 +61,17 @@ const Groups = () => {
       queryClient.invalidateQueries(["groups"]);
       setCreateDialogOpen(false);
       setNewGroup({ name: "", description: "" });
+      setCreateError("");
+    },
+    onError: (error) => {
+      // Try to extract error messages from backend
+      let msg = "Failed to create group.";
+      if (error.response?.data?.errors) {
+        msg = error.response.data.errors.map(e => e.msg).join(" ");
+      } else if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
+      setCreateError(msg);
     },
   });
 
@@ -205,8 +217,9 @@ const Groups = () => {
                         key={member._id}
                         avatar={
                           <Avatar
-                            src={member.profilePicture}
+                            src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
                             alt={member.username}
+                            onError={e => { e.target.src = "/default-profile.png"; }}
                           />
                         }
                         label={member.username}
@@ -276,10 +289,13 @@ const Groups = () => {
 
       <Dialog
         open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
+        onClose={() => { setCreateDialogOpen(false); setCreateError(""); }}
       >
         <DialogTitle>Create New Group</DialogTitle>
         <DialogContent>
+          {createError && (
+            <Alert severity="error" sx={{ mb: 2 }}>{createError}</Alert>
+          )}
           <Box component="form" onSubmit={handleCreateGroup} sx={{ pt: 2 }}>
             <TextField
               fullWidth
@@ -307,7 +323,7 @@ const Groups = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => { setCreateDialogOpen(false); setCreateError(""); }}>Cancel</Button>
           <Button
             onClick={handleCreateGroup}
             variant="contained"

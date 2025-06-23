@@ -752,11 +752,12 @@ const Group = () => {
                         sx={{ display: "flex", alignItems: "center", mb: 2 }}
                       >
                         <Avatar
-                          src={getProfilePicture(post.author)}
+                          src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : "/default-profile.png"}
                           alt={post.author?.username}
                           component={Link}
                           to={`/profile/${post.author?._id}`}
                           sx={{ mr: 2 }}
+                          onError={e => { e.target.src = "/default-profile.png"; }}
                         />
                         <Box sx={{ flexGrow: 1 }}>
                           <Typography
@@ -888,9 +889,10 @@ const Group = () => {
                           {post.comments.map((comment) => (
                             <ListItem key={comment._id} alignItems="flex-start">
                               <Avatar
-                                src={getProfilePicture(comment.author)}
+                                src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}` : "/default-profile.png"}
                                 alt={comment.author?.username}
                                 sx={{ mr: 2 }}
+                                onError={e => { e.target.src = "/default-profile.png"; }}
                               />
                               <Box>
                                 <Box
@@ -999,8 +1001,9 @@ const Group = () => {
                 >
                   <ListItemAvatar>
                     <Avatar
-                      src={getProfilePicture(member)}
+                      src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
                       alt={member.username}
+                      onError={e => { e.target.src = "/default-profile.png"; }}
                     />
                   </ListItemAvatar>
                   <ListItemText
@@ -1100,8 +1103,9 @@ const Group = () => {
               <ListItem {...props}>
                 <ListItemAvatar>
                   <Avatar
-                    src={getProfilePicture(option)}
+                    src={option.profilePicture ? `http://localhost:5000${option.profilePicture}` : "/default-profile.png"}
                     alt={option.username}
+                    onError={e => { e.target.src = "/default-profile.png"; }}
                   />
                 </ListItemAvatar>
                 <ListItemText primary={option.username} />
@@ -1320,7 +1324,11 @@ const Group = () => {
                 onClick={() => setSelectedNewAdmin(member._id)}
               >
                 <ListItemAvatar>
-                  <Avatar src={getProfilePicture(member)} alt={member.username} />
+                  <Avatar
+                    src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
+                    alt={member.username}
+                    onError={e => { e.target.src = "/default-profile.png"; }}
+                  />
                 </ListItemAvatar>
                 <ListItemText primary={member.username} />
               </ListItem>
