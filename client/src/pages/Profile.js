@@ -544,18 +544,24 @@ const Profile = () => {
               {profileData?.data?.data?.bio || "No bio yet"}
             </Typography>
             <Box sx={{ display: "flex", gap: 2 }}>
-              <Typography variant="body2">
-                <strong>{profileData.data.data.friends?.length || 0}</strong>{" "}
-                friends
-              </Typography>
-              <Typography variant="body2">
-                <strong>{profileData.data.data.followers?.length || 0}</strong>{" "}
-                followers
-              </Typography>
-              <Typography variant="body2">
-                <strong>{profileData.data.data.following?.length || 0}</strong>{" "}
-                following
-              </Typography>
+              {profileData.data.data.friends?.length > 0 && (
+                <Typography variant="body2">
+                  <strong>{profileData.data.data.friends.length}</strong>{" "}
+                  friends
+                </Typography>
+              )}
+              {profileData.data.data.followers?.length > 0 && (
+                <Typography variant="body2">
+                  <strong>{profileData.data.data.followers.length}</strong>{" "}
+                  followers
+                </Typography>
+              )}
+              {profileData.data.data.following?.length > 0 && (
+                <Typography variant="body2">
+                  <strong>{profileData.data.data.following.length}</strong>{" "}
+                  following
+                </Typography>
+              )}
             </Box>
           </Box>
           {isOwnProfile ? (

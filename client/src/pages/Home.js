@@ -445,15 +445,12 @@ const Home = () => {
                         sx={{ display: "flex", alignItems: "center", mb: 2 }}
                       >
                         <Avatar
-                          src={
-                            post.author?.profilePicture
-                              ? `http://localhost:5000${post.author.profilePicture}`
-                              : "/default-profile.png"
-                          }
+                          src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : "/default-profile.png"}
                           alt={post.author?.username}
                           component={Link}
                           to={`/profile/${post.author?._id}`}
                           sx={{ mr: 2 }}
+                          onError={e => { e.target.src = "/default-profile.png"; }}
                         />
                         <Box sx={{ flexGrow: 1 }}>
                           <Typography
@@ -595,13 +592,10 @@ const Home = () => {
                           {post.comments.map((comment) => (
                             <ListItem key={comment._id} alignItems="flex-start">
                               <Avatar
-                                src={
-                                  comment.author?.profilePicture
-                                    ? `http://localhost:5000${comment.author.profilePicture}`
-                                    : "/default-profile.png"
-                                }
+                                src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}` : "/default-profile.png"}
                                 alt={comment.author?.username}
                                 sx={{ mr: 2 }}
+                                onError={e => { e.target.src = "/default-profile.png"; }}
                               />
                               <Box>
                                 <Box

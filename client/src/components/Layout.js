@@ -233,18 +233,10 @@ const Layout = ({ children }) => {
               >
                 {user.profilePicture ? (
                   <Avatar
-                    src={
-                      user.profilePicture
-                        ? `http://localhost:5000${
-                            user.profilePicture
-                          }?t=${Date.now()}`
-                        : `http://localhost:5000/default-profile.png?t=${Date.now()}`
-                    }
+                    src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
                     alt={user.username}
                     sx={{ width: 32, height: 32 }}
-                    onError={(e) => {
-                      e.target.src = `http://localhost:5000/default-profile.png?t=${Date.now()}`;
-                    }}
+                    onError={e => { e.target.src = "/default-profile.png"; }}
                   />
                 ) : (
                   <AccountCircle />
