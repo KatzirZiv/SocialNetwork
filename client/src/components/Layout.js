@@ -156,9 +156,7 @@ const Layout = ({ children }) => {
                 <GroupIcon />
               </IconButton>
               <IconButton color="inherit" component={RouterLink} to="/chat">
-                <Badge badgeContent={3} color="error">
-                  <ChatIcon />
-                </Badge>
+                <ChatIcon />
               </IconButton>
               <IconButton color="inherit" onClick={handleNotificationsClick}>
                 <Badge badgeContent={unreadCount} color="error">
