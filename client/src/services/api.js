@@ -180,6 +180,8 @@ export const groups = {
       { userId },
       { headers: { "Content-Type": "application/json" } }
     ),
+  transferAdmin: (id, newAdminId) =>
+    api.post(`/groups/${id}/transfer-admin`, { newAdminId }),
 };
 
 // Post endpoints

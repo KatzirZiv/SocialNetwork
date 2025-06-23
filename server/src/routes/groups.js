@@ -11,7 +11,8 @@ const {
   searchGroups,
   inviteMember,
   removeMember,
-  addMember
+  addMember,
+  transferAdmin
 } = require('../controllers/groups');
 const { protect } = require('../middleware/auth');
 
@@ -67,5 +68,8 @@ router.post('/:id/remove-member', removeMember);
 
 // Add member (admin only)
 router.post('/:id/add-member', addMember);
+
+// Transfer admin
+router.post('/:id/transfer-admin', transferAdmin);
 
 module.exports = router; 

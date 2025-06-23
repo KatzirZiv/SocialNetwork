@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const multer = require('multer');
 const path = require('path');
+const Post = require('../models/Post');
 
 // Configure multer for cover image uploads
 const coverStorage = multer.diskStorage({
@@ -189,13 +190,17 @@ exports.deleteGroup = async (req, res) => {
       });
     }
 
+    // Delete all posts associated with the group
+    await Post.deleteMany({ _id: { $in: group.posts } });
+
     // Remove group from all members' groups array
     await User.updateMany(
       { groups: req.params.id },
       { $pull: { groups: req.params.id } }
     );
 
-    await group.remove();
+    // Actually delete the group
+    await Group.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
@@ -203,10 +208,7 @@ exports.deleteGroup = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -452,6 +454,39 @@ exports.addMember = async (req, res) => {
     // Add group to user's groups
     await User.findByIdAndUpdate(userId, { $addToSet: { groups: group._id } });
     res.status(200).json({ success: true, data: group });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Transfer group admin
+// @route   POST /api/groups/:id/transfer-admin
+// @access  Private (admin only)
+exports.transferAdmin = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    // Only current admin can transfer
+    if (group.admin.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Only the current admin can transfer admin rights.' });
+    }
+    const { newAdminId } = req.body;
+    if (!newAdminId) {
+      return res.status(400).json({ success: false, message: 'New admin ID is required.' });
+    }
+    // New admin must be a member
+    if (!group.members.map(m => m.toString()).includes(newAdminId)) {
+      return res.status(400).json({ success: false, message: 'Selected user is not a member of the group.' });
+    }
+    group.admin = newAdminId;
+    await group.save();
+    const updatedGroup = await Group.findById(group._id)
+      .populate('admin', 'username profilePicture')
+      .populate('members', 'username profilePicture');
+    res.status(200).json({ success: true, data: updatedGroup });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
