@@ -241,7 +241,13 @@ const Groups = () => {
                     <Button
                       size="small"
                       color="error"
-                      onClick={() => handleLeaveGroup(group._id)}
+                      onClick={() => {
+                        if (group.admin?._id === user._id) {
+                          navigate(`/groups/${group._id}`, { state: { openTransferAdmin: true } });
+                        } else {
+                          handleLeaveGroup(group._id);
+                        }
+                      }}
                       disabled={leaveGroupMutation.isLoading}
                     >
                       Leave Group

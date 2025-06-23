@@ -87,6 +87,8 @@ const Group = () => {
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [error, setError] = useState("");
+  const [transferAdminDialogOpen, setTransferAdminDialogOpen] = useState(false);
+  const [selectedNewAdmin, setSelectedNewAdmin] = useState(null);
 
   const {
     data: groupData,
@@ -237,6 +239,15 @@ const Group = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries(["groupPosts", id]);
       setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
+    },
+  });
+
+  const transferAdminMutation = useMutation({
+    mutationFn: ({ groupId, newAdminId }) => groups.transferAdmin(groupId, newAdminId),
+    onSuccess: () => {
+      setTransferAdminDialogOpen(false);
+      setSelectedNewAdmin(null);
+      leaveGroupMutation.mutate();
     },
   });
 
@@ -403,6 +414,14 @@ const Group = () => {
     }
   }, [editPostDialogOpen, editingPost]);
 
+  useEffect(() => {
+    if (isAdmin && window.history.state && window.history.state.usr && window.history.state.usr.openTransferAdmin) {
+      setTransferAdminDialogOpen(true);
+      // Remove the flag so it doesn't reopen on refresh
+      window.history.replaceState({ ...window.history.state, usr: { ...window.history.state.usr, openTransferAdmin: false } }, '');
+    }
+  }, [isAdmin]);
+
   if (groupLoading) {
     return (
       <Box
@@ -565,7 +584,7 @@ const Group = () => {
               <Button
                 variant="outlined"
                 color="error"
-                onClick={() => leaveGroupMutation.mutate()}
+                onClick={() => setTransferAdminDialogOpen(true)}
                 disabled={leaveGroupMutation.isLoading}
               >
                 Leave Group
@@ -1279,6 +1298,44 @@ const Group = () => {
             disabled={addMemberMutation.isLoading || !userToAdd}
           >
             Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={transferAdminDialogOpen}
+        onClose={() => setTransferAdminDialogOpen(false)}
+      >
+        <DialogTitle>Transfer Admin Before Leaving</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            You must transfer admin rights to another member before leaving the group. Please select the new admin:
+          </Typography>
+          <List>
+            {group.members?.filter(m => m._id !== group.admin?._id).map(member => (
+              <ListItem
+                button
+                key={member._id}
+                selected={selectedNewAdmin === member._id}
+                onClick={() => setSelectedNewAdmin(member._id)}
+              >
+                <ListItemAvatar>
+                  <Avatar src={getProfilePicture(member)} alt={member.username} />
+                </ListItemAvatar>
+                <ListItemText primary={member.username} />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTransferAdminDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => transferAdminMutation.mutate({ groupId: id, newAdminId: selectedNewAdmin })}
+            variant="contained"
+            color="primary"
+            disabled={!selectedNewAdmin || transferAdminMutation.isLoading}
+          >
+            Transfer & Leave
           </Button>
         </DialogActions>
       </Dialog>
