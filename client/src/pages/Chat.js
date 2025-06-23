@@ -138,9 +138,32 @@ const Chat = () => {
               : []
             ).map((friend) => {
               // Find conversation with this friend
-              const conversation = (
-                Array.isArray(conversations?.data) ? conversations.data : []
-              ).find((c) => c.participants.some((p) => p._id === friend._id));
+              const conversationList = Array.isArray(conversations?.data?.data)
+                ? conversations.data.data
+                : [];
+              const conversation = conversationList.find((c) =>
+                c.participants.some(
+                  (p) => p._id?.toString() === friend._id?.toString()
+                )
+              );
+              // Debug log
+              console.log('Friend:', friend.username, 'Friend ID:', friend._id);
+              console.log('Conversations:', conversations?.data);
+              console.log('Full conversations object:', conversations);
+              console.log('typeof conversations.data:', typeof conversations?.data);
+              console.log('Array.isArray(conversations.data):', Array.isArray(conversations?.data));
+              if (Array.isArray(conversations?.data?.data)) {
+                conversations.data.data.forEach((c, idx) => {
+                  console.log(`Conversation #${idx}:`, c);
+                });
+              }
+              if (conversation) {
+                console.log('Matched conversation:', conversation);
+                console.log('Participants:', conversation.participants);
+                console.log('Last message:', conversation.lastMessage);
+              } else {
+                console.log('No conversation found for', friend.username);
+              }
               return (
                 <ListItem
                   key={friend._id}
@@ -173,7 +196,9 @@ const Chat = () => {
                   <ListItemText
                     primary={friend.username}
                     secondary={
-                      conversation?.lastMessage?.content || "Start a new chat"
+                      !conversation
+                        ? "No messages yet. Say hello!"
+                        : conversation.lastMessage?.content || "Conversation started"
                     }
                   />
                 </ListItem>
