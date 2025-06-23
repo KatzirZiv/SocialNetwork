@@ -176,12 +176,15 @@ const Groups = () => {
       ) : (
         <Grid container spacing={3}>
           {filteredGroups.map((group) => (
-            <Grid columns={12} sm={6} md={4} key={group._id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={group._id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                    <Avatar sx={{ bgcolor: "primary.main", mr: 2 }}>
-                      <GroupIcon />
+                    <Avatar
+                      src={group.coverImage ? `http://localhost:5000${group.coverImage}` : "http://localhost:5000/uploads/default_cover.png"}
+                      sx={{ bgcolor: "primary.main", mr: 2 }}
+                    >
+                      {!group.coverImage && <GroupIcon />}
                     </Avatar>
                     <Typography variant="h6" component="div">
                       {group.name}

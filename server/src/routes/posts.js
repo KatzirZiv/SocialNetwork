@@ -30,7 +30,6 @@ router.post(
   [
     check('content', 'Content is required').not().isEmpty(),
     check('content', 'Content cannot be more than 5000 characters').isLength({ max: 5000 }),
-    check('group', 'Group is required').not().isEmpty(),
     check('mediaType', 'Media type must be image or video').optional().isIn(['image', 'video'])
   ],
   createPost

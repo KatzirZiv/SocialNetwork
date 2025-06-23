@@ -25,6 +25,7 @@ import {
   Alert,
   List,
   ListItem,
+  Chip,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -38,6 +39,7 @@ import {
   Close as CloseIcon,
   Cancel as CancelIcon,
   Delete as DeleteIcon,
+  VideoLibrary as VideoLibraryIcon,
 } from "@mui/icons-material";
 import { users, posts } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -73,6 +75,9 @@ const Profile = () => {
   const navigate = useNavigate();
   const [optimisticLikes, setOptimisticLikes] = useState({});
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [error, setError] = useState("");
 
   const {
     data: profileData,
@@ -365,21 +370,33 @@ const Profile = () => {
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
-    if (!newPost.trim() && !imageFile) return;
-
-    const formData = new FormData();
-    if (newPost.trim()) {
-      formData.append("content", newPost.trim());
-    }
+    if (!newPost.trim() && !imageFile && !videoFile) return;
+    setError("");
+    let mediaType = null;
+    let file = null;
     if (imageFile) {
-      formData.append("media", imageFile);
+      file = imageFile;
+      mediaType = 'image';
+    } else if (videoFile) {
+      file = videoFile;
+      mediaType = 'video';
     }
-
-    try {
-      await createPostMutation.mutateAsync(formData);
-    } catch (error) {
-      // console.error("Error creating post:", error);
+    const formData = new FormData();
+    formData.append('content', newPost);
+    if (file) {
+      formData.append('media', file);
+      formData.append('mediaType', mediaType);
     }
+    createPostMutation.mutate(formData, {
+      onError: (error) => {
+        setError(error.response?.data?.message || "Failed to create post");
+      },
+      onSuccess: () => {
+        setVideoFile(null);
+        setVideoPreview(null);
+        setError("");
+      }
+    });
   };
 
   const handleImageChange = (e) => {
@@ -392,6 +409,26 @@ const Profile = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      setVideoPreview(URL.createObjectURL(file));
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
   };
 
   useEffect(() => {
@@ -657,6 +694,11 @@ const Profile = () => {
           {isOwnProfile && (
             <Paper sx={{ p: 2, mb: 3 }}>
               <Box component="form" onSubmit={handlePostSubmit}>
+                {error && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {error}
+                  </Alert>
+                )}
                 <TextField
                   fullWidth
                   multiline
@@ -666,7 +708,7 @@ const Profile = () => {
                   onChange={(e) => setNewPost(e.target.value)}
                   sx={{ mb: 2 }}
                 />
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 2 }}>
                   <input
                     type="file"
                     accept="image/*"
@@ -679,9 +721,24 @@ const Profile = () => {
                       component="span"
                       variant="outlined"
                       startIcon={<ImageIcon />}
-                      sx={{ mr: 2 }}
                     >
                       Add Image
+                    </Button>
+                  </label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoChange}
+                    style={{ display: "none" }}
+                    id="video-upload"
+                  />
+                  <label htmlFor="video-upload">
+                    <Button
+                      component="span"
+                      variant="outlined"
+                      startIcon={<VideoLibraryIcon />}
+                    >
+                      Add Video
                     </Button>
                   </label>
                   {imagePreview && (
@@ -689,23 +746,28 @@ const Profile = () => {
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        style={{
-                          maxHeight: "100px",
-                          borderRadius: "4px",
-                        }}
+                        style={{ maxHeight: "100px", borderRadius: "4px" }}
                       />
                       <IconButton
                         size="small"
-                        onClick={() => {
-                          setImageFile(null);
-                          setImagePreview(null);
-                        }}
-                        sx={{
-                          position: "absolute",
-                          top: -8,
-                          right: -8,
-                          bgcolor: "background.paper",
-                        }}
+                        onClick={handleRemoveImage}
+                        sx={{ position: "absolute", top: -8, right: -8, bgcolor: "background.paper" }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                  {videoPreview && (
+                    <Box sx={{ position: "relative", display: "inline-block" }}>
+                      <video
+                        src={videoPreview}
+                        controls
+                        style={{ maxHeight: "100px", borderRadius: "4px" }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={handleRemoveVideo}
+                        sx={{ position: "absolute", top: -8, right: -8, bgcolor: "background.paper" }}
                       >
                         <CloseIcon fontSize="small" />
                       </IconButton>
@@ -715,10 +777,7 @@ const Profile = () => {
                 <Button
                   variant="contained"
                   type="submit"
-                  disabled={
-                    (!newPost.trim() && !imageFile) ||
-                    createPostMutation.isLoading
-                  }
+                  disabled={(!newPost.trim() && !imageFile && !videoFile) || createPostMutation.isLoading}
                 >
                   {createPostMutation.isLoading ? "Posting..." : "Post"}
                 </Button>
@@ -779,43 +838,62 @@ const Profile = () => {
                               {post.author?.username}
                             </Typography>
                             <Typography variant="body2" color="textSecondary">
-                              {new Date(post.createdAt).toLocaleString()}
+                              {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </Typography>
                           </Box>
-                          <PostMenu post={post} user={currentUser} />
+                          <PostMenu
+                            post={post}
+                            user={currentUser}
+                            onEdit={() => {
+                              setEditingPost(post);
+                              setEditPostContent(post.content);
+                              setEditPostDialogOpen(true);
+                            }}
+                            onDelete={() => {
+                              setEditingPost(post);
+                              setDeletePostDialogOpen(true);
+                            }}
+                          />
                         </Box>
+                        {post.group && (
+                          <Box sx={{ mb: 1 }}>
+                            <Chip
+                              label={`From group: ${post.group.name}`}
+                              component={Link}
+                              to={`/groups/${post.group._id}`}
+                              clickable
+                              color="primary"
+                              variant="outlined"
+                              sx={{ fontWeight: 500, fontSize: 13, mb: 0.5 }}
+                            />
+                          </Box>
+                        )}
                         <Typography
                           variant="body1"
                           sx={{ mt: 1, whiteSpace: "pre-wrap" }}
                         >
                           {post.content}
                         </Typography>
-                        {post.media && (
+                        {post.media && post.mediaType === 'video' ? (
                           <Box sx={{ mt: 2 }}>
-                            {isImageFile(post.media) ? (
-                              <img
-                                src={`http://localhost:5000${post.media}`}
-                                alt="Post media"
-                                style={{
-                                  maxWidth: "100%",
-                                  borderRadius: "8px",
-                                }}
-                                onError={(e) => {
-                                  e.target.src = `http://localhost:5000/default-post.png`;
-                                }}
-                              />
-                            ) : (
-                              <Button
-                                variant="outlined"
-                                href={`http://localhost:5000${post.media}`}
-                                download
-                                sx={{ mt: 1 }}
-                              >
-                                Download Attachment
-                              </Button>
-                            )}
+                            <video
+                              src={`http://localhost:5000${post.media}`}
+                              controls
+                              style={{ maxWidth: "100%", borderRadius: "8px" }}
+                            />
                           </Box>
-                        )}
+                        ) : post.media && post.mediaType === 'image' ? (
+                          <Box sx={{ mt: 2 }}>
+                            <img
+                              src={`http://localhost:5000${post.media}`}
+                              alt="Post media"
+                              style={{ maxWidth: "100%", borderRadius: "8px" }}
+                              onError={(e) => {
+                                e.target.src = `http://localhost:5000/default-post.png`;
+                              }}
+                            />
+                          </Box>
+                        ) : null}
                       </CardContent>
                       <Divider />
                       <CardActions sx={{ justifyContent: "space-around" }}>
@@ -933,9 +1011,7 @@ const Profile = () => {
                                       variant="body2"
                                       color="textSecondary"
                                     >
-                                      {new Date(
-                                        comment.createdAt
-                                      ).toLocaleString()}
+                                      {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </Typography>
                                     {comment.author?._id ===
                                       currentUser?._id && (

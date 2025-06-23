@@ -20,18 +20,19 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for videos
   fileFilter: function (req, file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-
-    if (mimetype && extname) {
+    const imageTypes = /jpeg|jpg|png|gif/;
+    const videoTypes = /mp4|webm|ogg/;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isImage = imageTypes.test(ext);
+    const isVideo = videoTypes.test(ext);
+    const isImageMime = file.mimetype.startsWith('image/');
+    const isVideoMime = file.mimetype.startsWith('video/');
+    if ((isImage && isImageMime) || (isVideo && isVideoMime)) {
       return cb(null, true);
     }
-    cb(new Error("Only image files are allowed!"));
+    cb(new Error('Only image and video files are allowed!'));
   },
 }).single("media");
 
@@ -56,6 +57,12 @@ exports.createPost = asyncHandler(async (req, res, next) => {
     req.body.author = req.user.id;
     if (req.file) {
       req.body.media = `/uploads/${req.file.filename}`;
+      // Set mediaType based on mimetype
+      if (req.file.mimetype.startsWith('video/')) {
+        req.body.mediaType = 'video';
+      } else if (req.file.mimetype.startsWith('image/')) {
+        req.body.mediaType = 'image';
+      }
     }
 
     // Extra logging for group
@@ -101,7 +108,9 @@ exports.getPosts = asyncHandler(async (req, res, next) => {
       const userIds = [req.user.id, ...(user.friends || [])];
       const groupIds = user.groups || [];
       query.$or = [
-        { author: { $in: userIds } },
+        // Posts not in a group, from user or friends
+        { $and: [ { $or: [ { group: { $exists: false } }, { group: null } ] }, { author: { $in: userIds } } ] },
+        // Posts in a group, only if user is a member
         { group: { $in: groupIds } }
       ];
     }

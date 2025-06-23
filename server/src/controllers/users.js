@@ -585,6 +585,7 @@ exports.getUserPosts = async (req, res) => {
   try {
     const posts = await Post.find({ author: req.params.id })
       .populate('author', 'username profilePicture')
+      .populate('group', 'name')
       .populate('likes', 'username')
       .populate({
         path: 'comments',

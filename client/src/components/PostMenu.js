@@ -4,9 +4,14 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-const PostMenu = ({ onEdit, onDelete, disabled }) => {
+const PostMenu = ({ post, user, onEdit, onDelete, disabled }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+
+  // Only allow if user is post author or admin
+  const canEditOrDelete = user && (user._id === post.author._id || user.role === 'admin');
+
+  if (!canEditOrDelete) return null;
 
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);

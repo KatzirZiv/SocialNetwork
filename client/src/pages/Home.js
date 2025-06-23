@@ -39,6 +39,7 @@ import {
   Close as CloseIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  VideoLibrary as VideoLibraryIcon,
 } from "@mui/icons-material";
 import { posts, groups, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -53,6 +54,8 @@ const Home = () => {
   const [newPost, setNewPost] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState("");
   const [error, setError] = useState("");
@@ -78,15 +81,17 @@ const Home = () => {
     queryKey: ["groups"],
     queryFn: () => groups.getAll(),
   });
-  console.log("DEBUG groupsData:", groupsData);
+
 
   const createPostMutation = useMutation({
-    mutationFn: (postData) => posts.create(postData),
+    mutationFn: (formData) => posts.create(formData),
     onSuccess: () => {
       queryClient.invalidateQueries(["posts"]);
       setNewPost("");
       setImageFile(null);
       setImagePreview(null);
+      setVideoFile(null);
+      setVideoPreview(null);
       setSelectedGroup("");
       setError("");
     },
@@ -181,19 +186,28 @@ const Home = () => {
     },
   });
 
-  const handlePostSubmit = (e) => {
+  const handlePostSubmit = async (e) => {
     e.preventDefault();
-    if (!newPost.trim() && !imageFile) return;
-
-    const formData = new FormData();
-    formData.append("content", newPost);
+    if (!newPost.trim() && !imageFile && !videoFile) return;
+    setError("");
+    let mediaType = null;
+    let file = null;
     if (imageFile) {
-      formData.append("media", imageFile);
+      file = imageFile;
+      mediaType = 'image';
+    } else if (videoFile) {
+      file = videoFile;
+      mediaType = 'video';
+    }
+    const formData = new FormData();
+    formData.append('content', newPost);
+    if (file) {
+      formData.append('media', file);
+      formData.append('mediaType', mediaType);
     }
     if (selectedGroup) {
-      formData.append("group", selectedGroup);
+      formData.append('group', selectedGroup);
     }
-
     createPostMutation.mutate(formData);
   };
 
@@ -209,8 +223,22 @@ const Home = () => {
     }
   };
 
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      setVideoPreview(URL.createObjectURL(file));
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+
   const handleImageClick = (event) => {
     setAnchorEl(event.currentTarget);
+  };
+
+  const handleVideoClick = (event) => {
+    document.getElementById('video-upload').click();
   };
 
   const handleImageMenuClose = () => {
@@ -226,6 +254,11 @@ const Home = () => {
     setImageFile(null);
     setImagePreview(null);
     handleImageMenuClose();
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
   };
 
   const handleGroupSelect = (groupId) => {
@@ -266,7 +299,6 @@ const Home = () => {
   const groupsList = Array.isArray(groupsData?.data?.data)
     ? groupsData.data.data
     : [];
-  console.log("DEBUG groupsList:", groupsList);
   const postsList = Array.isArray(postsData?.data?.data)
     ? postsData.data.data
     : [];
@@ -334,6 +366,22 @@ const Home = () => {
                     </IconButton>
                   </Box>
                 )}
+                {videoPreview && (
+                  <Box sx={{ position: "relative", mb: 1 }}>
+                    <video
+                      src={videoPreview}
+                      controls
+                      style={{ maxWidth: "100%", maxHeight: "220px", borderRadius: "6px" }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={handleRemoveVideo}
+                      sx={{ position: "absolute", top: 6, right: 6, bgcolor: "rgba(0, 0, 0, 0.5)", "&:hover": { bgcolor: "rgba(0, 0, 0, 0.7)" } }}
+                    >
+                      <CloseIcon sx={{ color: "white", fontSize: 18 }} />
+                    </IconButton>
+                  </Box>
+                )}
                 <Box
                   sx={{
                     display: "flex",
@@ -350,23 +398,19 @@ const Home = () => {
                       onChange={handleImageChange}
                       style={{ display: "none" }}
                     />
-                    <IconButton onClick={handleImageClick} size="small">
+                    <input
+                      type="file"
+                      id="video-upload"
+                      accept="video/*"
+                      onChange={handleVideoChange}
+                      style={{ display: "none" }}
+                    />
+                    <IconButton onClick={() => document.getElementById('image-upload').click()} size="small">
                       <ImageIcon fontSize="small" />
                     </IconButton>
-                    <Menu
-                      anchorEl={anchorEl}
-                      open={Boolean(anchorEl)}
-                      onClose={handleImageMenuClose}
-                    >
-                      <MenuItem onClick={handleImageUpload}>
-                        Upload Image
-                      </MenuItem>
-                      {imagePreview && (
-                        <MenuItem onClick={handleRemoveImage}>
-                          Remove Image
-                        </MenuItem>
-                      )}
-                    </Menu>
+                    <IconButton onClick={handleVideoClick} size="small">
+                      <VideoLibraryIcon fontSize="small" />
+                    </IconButton>
                   </Box>
                   <Button
                     type="submit"
@@ -374,7 +418,7 @@ const Home = () => {
                     size="small"
                     disabled={
                       createPostMutation.isLoading ||
-                      (!newPost.trim() && !imageFile)
+                      (!newPost.trim() && !imageFile && !videoFile)
                     }
                     sx={{ fontSize: 15, px: 2, py: 0.5, borderRadius: 2 }}
                   >
@@ -421,7 +465,7 @@ const Home = () => {
                             {post.author?.username}
                           </Typography>
                           <Typography variant="body2" color="textSecondary">
-                            {new Date(post.createdAt).toLocaleString()}
+                            {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </Typography>
                         </Box>
                         <PostMenu
@@ -438,13 +482,35 @@ const Home = () => {
                           }}
                         />
                       </Box>
+                      {/* Show group chip if post.group exists */}
+                      {post.group && (
+                        <Box sx={{ mb: 1 }}>
+                          <Chip
+                            label={`From group: ${post.group.name}`}
+                            component={Link}
+                            to={`/groups/${post.group._id}`}
+                            clickable
+                            color="primary"
+                            variant="outlined"
+                            sx={{ fontWeight: 500, fontSize: 13, mb: 0.5 }}
+                          />
+                        </Box>
+                      )}
                       <Typography
                         variant="body1"
                         sx={{ mt: 1, whiteSpace: "pre-wrap" }}
                       >
                         {post.content}
                       </Typography>
-                      {post.media && (
+                      {post.media && post.mediaType === 'video' ? (
+                        <Box sx={{ mt: 2 }}>
+                          <video
+                            src={`http://localhost:5000${post.media}`}
+                            controls
+                            style={{ maxWidth: "100%", borderRadius: "8px" }}
+                          />
+                        </Box>
+                      ) : post.media && post.mediaType === 'image' ? (
                         <Box sx={{ mt: 2 }}>
                           <img
                             src={`http://localhost:5000${post.media}`}
@@ -452,7 +518,7 @@ const Home = () => {
                             style={{ maxWidth: "100%", borderRadius: "8px" }}
                           />
                         </Box>
-                      )}
+                      ) : null}
                     </CardContent>
                     <Divider />
                     <CardActions sx={{ justifyContent: "space-around" }}>
@@ -560,9 +626,7 @@ const Home = () => {
                                     variant="body2"
                                     color="textSecondary"
                                   >
-                                    {new Date(
-                                      comment.createdAt
-                                    ).toLocaleString()}
+                                    {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </Typography>
                                   {comment.author?._id === user?._id && (
                                     <CommentMenu
