@@ -11,6 +11,11 @@ const postSchema = new mongoose.Schema(
     media: {
       type: String, // URL to the media file
     },
+    mediaType: {
+      type: String,
+      enum: ['image', 'video', null],
+      default: null,
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

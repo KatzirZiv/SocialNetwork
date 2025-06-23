@@ -198,13 +198,12 @@ export const posts = {
   getById: (id) => api.get(`/posts/${id}`),
   create: (data) => {
     if (data instanceof FormData) {
-      return api.post("/posts", data);
+      return api.post('/posts', data);
+    } else {
+      return api.post('/posts', data, {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
-    const formData = new FormData();
-    formData.append("content", data.content);
-    if (data.group) formData.append("group", data.group);
-    if (data.media) formData.append("media", data.media);
-    return api.post("/posts", formData);
   },
   update: (id, data) =>
     api.put(`/posts/${id}`, data, {

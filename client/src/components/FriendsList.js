@@ -90,7 +90,7 @@ const FriendsList = ({ compact }) => {
           <Box sx={{ mb: 1 }}>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search Friends"
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
@@ -196,7 +196,7 @@ const FriendsList = ({ compact }) => {
               }}
               onClick={() => setFindFriendsOpen(true)}
             >
-              Find Friends
+              Find a new Friend
             </button>
           </Box>
         )}

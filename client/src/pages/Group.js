@@ -42,6 +42,7 @@ import {
   PersonAdd as PersonAddIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -83,6 +84,9 @@ const Group = () => {
   const [optimisticLikes, setOptimisticLikes] = useState({});
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
   const [commentTexts, setCommentTexts] = useState({});
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [error, setError] = useState("");
 
   const {
     data: groupData,
@@ -254,16 +258,38 @@ const Group = () => {
     deleteGroupMutation.mutate();
   };
 
-  const handleCreatePost = (e) => {
+  const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!newPost.trim() && !imageFile) return;
-    const formData = new FormData();
-    formData.append("content", newPost);
-    formData.append("group", id);
+    if (!newPost.trim() && !imageFile && !videoFile) return;
+    setError("");
+    let mediaType = null;
+    let file = null;
     if (imageFile) {
-      formData.append("media", imageFile);
+      file = imageFile;
+      mediaType = 'image';
+    } else if (videoFile) {
+      file = videoFile;
+      mediaType = 'video';
     }
-    createPostMutation.mutate(formData);
+    const formData = new FormData();
+    formData.append('content', newPost);
+    if (file) {
+      formData.append('media', file);
+      formData.append('mediaType', mediaType);
+    }
+    if (id) {
+      formData.append('group', id);
+    }
+    createPostMutation.mutate(formData, {
+      onError: (error) => {
+        setError(error.response?.data?.message || "Failed to create post");
+      },
+      onSuccess: () => {
+        setVideoFile(null);
+        setVideoPreview(null);
+        setError("");
+      }
+    });
   };
 
   const handleLike = (postId) => {
@@ -325,6 +351,26 @@ const Group = () => {
     const content = commentTexts[postId]?.trim();
     if (!content) return;
     addCommentMutation.mutate({ postId, content });
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      setVideoPreview(URL.createObjectURL(file));
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
   };
 
   const group = groupData?.data?.data;
@@ -573,6 +619,11 @@ const Group = () => {
           {isMember && (
             <Paper sx={{ p: 2, mb: 3 }}>
               <Box component="form" onSubmit={handleCreatePost}>
+                {error && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {error}
+                  </Alert>
+                )}
                 <TextField
                   fullWidth
                   multiline
@@ -582,36 +633,70 @@ const Group = () => {
                   onChange={(e) => setNewPost(e.target.value)}
                   sx={{ mb: 2 }}
                 />
-                <input
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  id="group-post-image-upload"
-                  type="file"
-                  onChange={handleImageChange}
-                />
-                <label htmlFor="group-post-image-upload">
-                  <Button variant="outlined" component="span" sx={{ mr: 2 }}>
-                    Upload Image
-                  </Button>
-                </label>
-                {imagePreview && (
-                  <Box sx={{ mb: 2 }}>
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      style={{ maxWidth: 200, borderRadius: 8 }}
-                    />
-                  </Box>
-                )}
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 2 }}>
+                  <input
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    id="group-post-image-upload"
+                    type="file"
+                    onChange={handleImageChange}
+                  />
+                  <label htmlFor="group-post-image-upload">
+                    <Button variant="outlined" component="span">
+                      Upload Image
+                    </Button>
+                  </label>
+                  <input
+                    accept="video/*"
+                    style={{ display: "none" }}
+                    id="group-post-video-upload"
+                    type="file"
+                    onChange={handleVideoChange}
+                  />
+                  <label htmlFor="group-post-video-upload">
+                    <Button variant="outlined" component="span">
+                      Upload Video
+                    </Button>
+                  </label>
+                  {imagePreview && (
+                    <Box sx={{ position: "relative", display: "inline-block" }}>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{ maxHeight: "100px", borderRadius: "4px" }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={handleRemoveImage}
+                        sx={{ position: "absolute", top: -8, right: -8, bgcolor: "background.paper" }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                  {videoPreview && (
+                    <Box sx={{ position: "relative", display: "inline-block" }}>
+                      <video
+                        src={videoPreview}
+                        controls
+                        style={{ maxHeight: "100px", borderRadius: "4px" }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={handleRemoveVideo}
+                        sx={{ position: "absolute", top: -8, right: -8, bgcolor: "background.paper" }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
                 <Button
                   variant="contained"
                   type="submit"
-                  disabled={
-                    (!newPost.trim() && !imageFile) ||
-                    createPostMutation.isLoading
-                  }
+                  disabled={(!newPost.trim() && !imageFile && !videoFile) || createPostMutation.isLoading}
                 >
-                  Post
+                  {createPostMutation.isLoading ? "Posting..." : "Post"}
                 </Button>
               </Box>
             </Paper>
@@ -664,7 +749,7 @@ const Group = () => {
                             {post.author?.username}
                           </Typography>
                           <Typography variant="body2" color="textSecondary">
-                            {new Date(post.createdAt).toLocaleString()}
+                            {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </Typography>
                         </Box>
                         <PostMenu
@@ -687,7 +772,15 @@ const Group = () => {
                       >
                         {post.content}
                       </Typography>
-                      {post.media && (
+                      {post.media && post.mediaType === 'video' ? (
+                        <Box sx={{ mt: 2 }}>
+                          <video
+                            src={`http://localhost:5000${post.media}`}
+                            controls
+                            style={{ maxWidth: "100%", borderRadius: "8px" }}
+                          />
+                        </Box>
+                      ) : post.media && post.mediaType === 'image' ? (
                         <Box sx={{ mt: 2 }}>
                           <img
                             src={`http://localhost:5000${post.media}`}
@@ -695,7 +788,7 @@ const Group = () => {
                             style={{ maxWidth: "100%", borderRadius: "8px" }}
                           />
                         </Box>
-                      )}
+                      ) : null}
                     </CardContent>
                     <Divider />
                     <CardActions sx={{ justifyContent: "space-around" }}>
@@ -803,9 +896,7 @@ const Group = () => {
                                     variant="body2"
                                     color="textSecondary"
                                   >
-                                    {new Date(
-                                      comment.createdAt
-                                    ).toLocaleString()}
+                                    {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </Typography>
                                   {comment.author?._id === currentUser?._id && (
                                     <CommentMenu
