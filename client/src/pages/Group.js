@@ -452,6 +452,62 @@ const Group = () => {
     }
   }, [isAdmin, group?._id]);
 
+  const handleJoinGroup = () => {
+    joinGroupMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        if (group.privacy === 'private') {
+          refetchMyJoinRequest();
+          queryClient.invalidateQueries(["group", id]);
+        }
+      },
+      onError: (error) => {
+        if (error.message === 'Join request already sent') {
+          refetchMyJoinRequest();
+          queryClient.invalidateQueries(["group", id]);
+        } else {
+          setError(error.message || 'Failed to join group');
+        }
+      }
+    });
+  };
+
+  // Check if user can view group details
+  const canViewGroup = group.privacy === 'public' || isMember || isAdmin;
+
+  if (!canViewGroup) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
+          <Typography variant="h5" gutterBottom>This group is private</Typography>
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            You must be a member to view the group details.
+          </Typography>
+          {myJoinRequest?.status === 'pending' ? (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => cancelJoinRequestMutation.mutate()}
+              disabled={cancelJoinRequestMutation.isLoading}
+              startIcon={<CancelIcon />}
+              sx={{ mt: 2, backgroundColor: '#ffd1ea', color: '#ffb6d5', '&:hover': { backgroundColor: '#ffe6f2' } }}
+            >
+              Cancel Request
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              disabled={joinGroupMutation.isLoading}
+              sx={{ mt: 2, backgroundColor: '#ffb6d5', color: '#fff', '&:hover': { backgroundColor: '#ffd1ea' } }}
+              onClick={handleJoinGroup}
+            >
+              Request to Join
+            </Button>
+          )}
+        </Paper>
+      </Container>
+    );
+  }
+
   if (groupLoading) {
     return (
       <Box
@@ -482,26 +538,6 @@ const Group = () => {
       </Container>
     );
   }
-
-
-  const handleJoinGroup = () => {
-    joinGroupMutation.mutate(undefined, {
-      onSuccess: (data) => {
-        if (group.privacy === 'private') {
-          refetchMyJoinRequest();
-          queryClient.invalidateQueries(["group", id]);
-        }
-      },
-      onError: (error) => {
-        if (error.message === 'Join request already sent') {
-          refetchMyJoinRequest();
-          queryClient.invalidateQueries(["group", id]);
-        } else {
-          setError(error.message || 'Failed to join group');
-        }
-      }
-    });
-  };
 
   const handleAcceptJoinRequest = (userId) => {
     groups.acceptJoinRequest(group._id, userId).then(() => {
