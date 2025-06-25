@@ -471,8 +471,51 @@ const Group = () => {
     });
   };
 
-  // Check if user can view group details
-  const canViewGroup = group.privacy === 'public' || isMember || isAdmin;
+  const handleAcceptJoinRequest = (requestId) => {
+    groups.acceptJoinRequest(group._id, requestId).then(() => {
+      setJoinRequests((prev) => prev.filter(r => r._id !== requestId));
+      queryClient.invalidateQueries(["group", id]);
+    });
+  };
+
+  const handleDeclineJoinRequest = (requestId) => {
+    groups.declineJoinRequest(group._id, requestId).then(() => {
+      setJoinRequests((prev) => prev.filter(r => r._id !== requestId));
+    });
+  };
+
+  if (groupLoading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="60vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (groupError) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error">
+          Error loading group. Please try again later.
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!groupData?.data?.data) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error">Group not found</Alert>
+      </Container>
+    );
+  }
+
+  const canViewGroup = group && (group.privacy === 'public' || isMember || isAdmin);
 
   if (!canViewGroup) {
     return (
@@ -507,50 +550,6 @@ const Group = () => {
       </Container>
     );
   }
-
-  if (groupLoading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="60vh"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (groupError) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">
-          Error loading group. Please try again later.
-        </Alert>
-      </Container>
-    );
-  }
-
-  if (!groupData?.data?.data) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">Group not found</Alert>
-      </Container>
-    );
-  }
-
-  const handleAcceptJoinRequest = (userId) => {
-    groups.acceptJoinRequest(group._id, userId).then(() => {
-      setJoinRequests((prev) => prev.filter(u => u._id !== userId));
-      queryClient.invalidateQueries(["group", id]);
-    });
-  };
-
-  const handleDeclineJoinRequest = (userId) => {
-    groups.declineJoinRequest(group._id, userId).then(() => {
-      setJoinRequests((prev) => prev.filter(u => u._id !== userId));
-    });
-  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -1098,17 +1097,17 @@ const Group = () => {
                 <Paper sx={{ p: 2, mb: 2, background: '#fff7fa' }}>
                   <Typography variant="h6" sx={{ mb: 1 }}>Pending Join Requests</Typography>
                   <List>
-                    {joinRequests.map((user) => (
-                      <ListItem key={user._id} secondaryAction={
+                    {joinRequests.map((request) => (
+                      <ListItem key={request._id} secondaryAction={
                         <>
-                          <Button size="small" color="primary" onClick={() => handleAcceptJoinRequest(user._id)} sx={{ mr: 1 }}>Accept</Button>
-                          <Button size="small" color="error" onClick={() => handleDeclineJoinRequest(user._id)}>Decline</Button>
+                          <Button size="small" color="primary" onClick={() => handleAcceptJoinRequest(request._id)} sx={{ mr: 1 }}>Accept</Button>
+                          <Button size="small" color="error" onClick={() => handleDeclineJoinRequest(request._id)}>Decline</Button>
                         </>
                       }>
                         <ListItemAvatar>
-                          <Avatar src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : '/default-profile.png'} />
+                          <Avatar src={request.user?.profilePicture ? `http://localhost:5000${request.user.profilePicture}` : '/default-profile.png'} />
                         </ListItemAvatar>
-                        <ListItemText primary={user.username} />
+                        <ListItemText primary={request.user?.username} />
                       </ListItem>
                     ))}
                   </List>
