@@ -491,4 +491,26 @@ exports.transferAdmin = async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
+};
+
+// @desc    Get top groups by activity (number of posts)
+// @route   GET /api/groups/stats/top-groups
+// @access  Private/Admin
+exports.topGroupsByActivity = async (req, res) => {
+  try {
+    const topGroups = await Group.aggregate([
+      {
+        $project: {
+          name: 1,
+          postCount: { $size: { $ifNull: ["$posts", []] } },
+          coverImage: 1
+        }
+      },
+      { $sort: { postCount: -1 } },
+      { $limit: 7 }
+    ]);
+    res.json({ success: true, data: topGroups });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 }; 

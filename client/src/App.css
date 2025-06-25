@@ -111,3 +111,14 @@ body {
     transform: rotate(360deg);
   }
 }
+
+@font-face {
+  font-family: 'CustomRobotoBold';
+  src: url('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+h1, h2, h3, .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3 {
+  font-family: 'CustomRobotoBold', 'Roboto', Arial, sans-serif !important;
+}
