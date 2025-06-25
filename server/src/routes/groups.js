@@ -13,7 +13,12 @@ const {
   removeMember,
   addMember,
   transferAdmin,
-  topGroupsByActivity
+  topGroupsByActivity,
+  getJoinRequests,
+  acceptJoinRequest,
+  declineJoinRequest,
+  cancelJoinRequest,
+  getMyJoinRequest
 } = require('../controllers/groups');
 const { protect } = require('../middleware/auth');
 
@@ -73,6 +78,16 @@ router.post('/:id/add-member', addMember);
 // Transfer admin
 router.post('/:id/transfer-admin', transferAdmin);
 
+// Join request admin actions
+router.get('/:id/join-requests', getJoinRequests);
+router.post('/:id/join-requests/:requestId/accept', acceptJoinRequest);
+router.post('/:id/join-requests/:requestId/decline', declineJoinRequest);
+
+// Cancel join request (user)
+router.delete('/:id/join-request', cancelJoinRequest);
+
+// Get current user's join request for a group
+router.get('/:id/my-join-request', getMyJoinRequest);
 
 router.get('/stats/top-groups', topGroupsByActivity);
 

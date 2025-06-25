@@ -188,34 +188,6 @@ function PostsByHourChart({ data }) {
   );
 }
 
-function TopGroupsChart({ data }) {
-  return (
-    <Box sx={{ width: '100%', height: 220 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis type="number" allowDecimals={false} fontSize={12} />
-          <YAxis dataKey="name" type="category" fontSize={13} width={100}
-            tick={({ x, y, payload }) => (
-              <g transform={`translate(${x - 30},${y + 10})`}>
-                <foreignObject width="30" height="30">
-                  <Avatar src={data.find(g => g.name === payload.value)?.coverImage} sx={{ width: 24, height: 24, mr: 1, display: 'inline-block', verticalAlign: 'middle' }} />
-                </foreignObject>
-                <text x={35} y={0} dy={0} fontSize={13} fill="#222">{payload.value}</text>
-              </g>
-            )}
-          />
-          <Tooltip />
-          <Bar dataKey="postCount" fill="#90caf9" radius={6} />
-        </BarChart>
-      </ResponsiveContainer>
-      <Typography align="center" fontWeight={700} fontSize={15} color="#1976d2" mt={1}>
-        Top Groups by Activity
-      </Typography>
-    </Box>
-  );
-}
-
 export default function StatisticsGraphs({ compact }) {
   const { posts, users, topUsers, byDay, byHour, topGroups, loading, error } = useStatsData();
   return (
@@ -237,7 +209,6 @@ export default function StatisticsGraphs({ compact }) {
           <TopUsersChart data={topUsers} compact={compact} />
           <PostsByDayChart data={byDay} />
           <PostsByHourChart data={byHour} />
-          <TopGroupsChart data={topGroups} />
         </Box>
       )}
     </Paper>
