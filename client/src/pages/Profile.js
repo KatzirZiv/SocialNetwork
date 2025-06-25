@@ -565,25 +565,45 @@ const Profile = () => {
             </Box>
           </Box>
           {isOwnProfile ? (
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={handleEditProfile}
-              sx={{
-                borderRadius: "20px",
-                textTransform: "none",
-                fontWeight: 500,
-                px: 3,
-                color: "#ffb6d5",
-                borderColor: "#ffb6d5",
-                "&:hover": {
-                  backgroundColor: "#ffd1ea",
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={handleEditProfile}
+                sx={{
+                  borderRadius: "20px",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  px: 3,
+                  color: "#ffb6d5",
                   borderColor: "#ffb6d5",
-                },
-              }}
-            >
-              Edit Profile
-            </Button>
+                  "&:hover": {
+                    backgroundColor: "#ffd1ea",
+                    borderColor: "#ffb6d5",
+                  },
+                }}
+              >
+                Edit Profile
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/settings')}
+                sx={{
+                  borderRadius: "20px",
+                  textTransform: "none",
+                  fontWeight: 500,
+                  px: 3,
+                  color: "#ffb6d5",
+                  borderColor: "#ffb6d5",
+                  "&:hover": {
+                    backgroundColor: "#ffd1ea",
+                    borderColor: "#ffb6d5",
+                  },
+                }}
+              >
+                Settings
+              </Button>
+            </Box>
           ) : (
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
