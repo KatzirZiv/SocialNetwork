@@ -15,6 +15,7 @@ import {
   Divider,
   CircularProgress,
   IconButton,
+  ListItemButton,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { messages, users } from "../services/api";
@@ -148,42 +149,42 @@ const Chat = () => {
               );
 
               return (
-                <ListItem
-                  key={friend._id}
-                  button
-                  selected={selectedUser?._id === friend._id}
-                  onClick={() => setSelectedUser(friend)}
-                >
-                  <ListItemAvatar>
-                    <Box sx={{ position: "relative" }}>
-                      <Avatar
-                        src={getProfilePicture(friend)}
-                        alt={friend.username}
-                      />
-                      {onlineUsers.includes(friend._id) && (
-                        <Box
-                          sx={{
-                            position: "absolute",
-                            bottom: 0,
-                            right: 0,
-                            width: 12,
-                            height: 12,
-                            bgcolor: "success.main",
-                            borderRadius: "50%",
-                            border: "2px solid white",
-                          }}
+                <ListItem key={friend._id}>
+                  <ListItemButton
+                    selected={selectedUser?._id === friend._id}
+                    onClick={() => setSelectedUser(friend)}
+                  >
+                    <ListItemAvatar>
+                      <Box sx={{ position: "relative" }}>
+                        <Avatar
+                          src={getProfilePicture(friend)}
+                          alt={friend.username}
                         />
-                      )}
-                    </Box>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={friend.username}
-                    secondary={
-                      !conversation
-                        ? "No messages yet. Say hello!"
-                        : conversation.lastMessage?.content || "Conversation started"
-                    }
-                  />
+                        {onlineUsers.includes(friend._id) && (
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              bottom: 0,
+                              right: 0,
+                              width: 12,
+                              height: 12,
+                              bgcolor: "success.main",
+                              borderRadius: "50%",
+                              border: "2px solid white",
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={friend.username}
+                      secondary={
+                        !conversation
+                          ? "No messages yet. Say hello!"
+                          : conversation.lastMessage?.content || "Conversation started"
+                      }
+                    />
+                  </ListItemButton>
                 </ListItem>
               );
             })}
