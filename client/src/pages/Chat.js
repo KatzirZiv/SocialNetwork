@@ -146,24 +146,7 @@ const Chat = () => {
                   (p) => p._id?.toString() === friend._id?.toString()
                 )
               );
-              // Debug log
-              console.log('Friend:', friend.username, 'Friend ID:', friend._id);
-              console.log('Conversations:', conversations?.data);
-              console.log('Full conversations object:', conversations);
-              console.log('typeof conversations.data:', typeof conversations?.data);
-              console.log('Array.isArray(conversations.data):', Array.isArray(conversations?.data));
-              if (Array.isArray(conversations?.data?.data)) {
-                conversations.data.data.forEach((c, idx) => {
-                  console.log(`Conversation #${idx}:`, c);
-                });
-              }
-              if (conversation) {
-                console.log('Matched conversation:', conversation);
-                console.log('Participants:', conversation.participants);
-                console.log('Last message:', conversation.lastMessage);
-              } else {
-                console.log('No conversation found for', friend.username);
-              }
+
               return (
                 <ListItem
                   key={friend._id}

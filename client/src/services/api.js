@@ -129,6 +129,10 @@ export const users = {
       throw error;
     }
   },
+  changePassword: (id, data) =>
+    api.put(`/users/${id}/password`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
 };
 
 // Group endpoints

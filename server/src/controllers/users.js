@@ -641,4 +641,57 @@ exports.getNewUsersPerMonth = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
+};
+
+// @desc    Change user password
+// @route   PUT /api/users/:id/password
+// @access  Private
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Old password and new password are required.'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 6 characters long.'
+      });
+    }
+
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found.'
+      });
+    }
+
+    const isMatch = await user.matchPassword(oldPassword);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        error: 'Old password is incorrect.'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully.'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 }; 

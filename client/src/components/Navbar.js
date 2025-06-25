@@ -14,6 +14,9 @@ const Navbar = () => {
               <Link to="/statistics" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600, marginLeft: 16 }}>
                 Statistics
               </Link>
+              <Link to="/settings" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600, marginLeft: 16 }}>
+                Settings
+              </Link>
               {/* ... existing user menu ... */}
             </Box>
           )}

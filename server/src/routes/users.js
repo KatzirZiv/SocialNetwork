@@ -22,7 +22,8 @@ const {
   getFriendRequests,
   cancelFriendRequest,
   getOutgoingFriendRequests,
-  getNewUsersPerMonth
+  getNewUsersPerMonth,
+  changePassword
 } = require('../controllers/users');
 
 // Search users route - allow non-logged-in users but check auth if available
@@ -108,6 +109,9 @@ router.get('/outgoing-friend-requests', protect, getOutgoingFriendRequests);
 
 
 router.get('/stats/new-per-month', getNewUsersPerMonth);
+
+// Add change password route
+router.put('/:id/password', protect, changePassword);
 
 // Catch-all for unknown /api/users/* routes - must be last
 router.use((req, res) => {
