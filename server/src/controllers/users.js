@@ -606,4 +606,39 @@ exports.getUserPosts = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// @desc    Get number of new users per month (last 12 months)
+// @route   GET /api/users/stats/new-per-month
+// @access  Public/Admin
+exports.getNewUsersPerMonth = async (req, res) => {
+  try {
+    const now = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        label: d.toLocaleString('default', { month: 'short', year: '2-digit' })
+      });
+    }
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const users = await User.aggregate([
+      { $match: { createdAt: { $gte: start } } },
+      {
+        $group: {
+          _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const data = months.map(m => {
+      const found = users.find(u => u._id.year === m.year && u._id.month === m.month);
+      return { ...m, count: found ? found.count : 0 };
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 }; 

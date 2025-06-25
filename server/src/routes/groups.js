@@ -12,7 +12,8 @@ const {
   inviteMember,
   removeMember,
   addMember,
-  transferAdmin
+  transferAdmin,
+  topGroupsByActivity
 } = require('../controllers/groups');
 const { protect } = require('../middleware/auth');
 
@@ -71,5 +72,8 @@ router.post('/:id/add-member', addMember);
 
 // Transfer admin
 router.post('/:id/transfer-admin', transferAdmin);
+
+// סטטיסטיקת קבוצות פעילות
+router.get('/stats/top-groups', topGroupsByActivity);
 
 module.exports = router; 

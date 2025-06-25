@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Group from "./pages/Group";
 import Chat from "./pages/Chat";
 import Groups from "./pages/Groups";
+import Statistics from "./pages/Statistics";
 
 const theme = createTheme({
   palette: {
@@ -143,6 +144,16 @@ function App() {
                     <ProtectedRoute>
                       <Layout>
                         <Chat />
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/statistics"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Statistics />
                       </Layout>
                     </ProtectedRoute>
                   }

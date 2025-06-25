@@ -9,7 +9,11 @@ const {
   likePost,
   addComment,
   removeComment,
-  updateComment
+  updateComment,
+  getNewPostsPerMonth,
+  topActiveUsers,
+  postsByDayOfWeek,
+  postsByHour
 } = require('../controllers/posts');
 const { protect } = require('../middleware/auth');
 
@@ -72,5 +76,13 @@ router.put(
 
 // Remove comment
 router.delete('/:id/comments/:comment_id', removeComment);
+
+// סטטיסטיקה: פוסטים חדשים בחודש
+router.get('/stats/new-per-month', getNewPostsPerMonth);
+
+// סטטיסטיקות נוספות
+router.get('/stats/top-users', topActiveUsers);
+router.get('/stats/by-day-of-week', postsByDayOfWeek);
+router.get('/stats/by-hour', postsByHour);
 
 module.exports = router; 
