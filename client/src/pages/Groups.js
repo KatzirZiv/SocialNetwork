@@ -158,7 +158,6 @@ const Groups = () => {
   }) {
     const { data: myJoinRequestData, isLoading: joinReqLoading, refetch } = useMyJoinRequest(group._id, user?._id);
     const myJoinRequest = myJoinRequestData?.data?.data;
-    console.log('myJoinRequest', myJoinRequest);
 
     return (
       <Grid item xs={12} sm={6} md={4} key={group._id}>

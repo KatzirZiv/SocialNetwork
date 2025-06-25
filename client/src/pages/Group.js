@@ -97,7 +97,6 @@ const Group = () => {
     enabled: !!currentUser?._id,
   });
   const myJoinRequest = myJoinRequestData?.data?.data;
-  console.log('myJoinRequest', myJoinRequest);
 
   const {
     data: groupData,
@@ -115,7 +114,6 @@ const Group = () => {
   } = useQuery({
     queryKey: ["groupPosts", id],
     queryFn: () => {
-      console.log("Fetching group posts for group:", id);
       return posts.getAll({ group: id });
     },
   });
@@ -485,9 +483,6 @@ const Group = () => {
     );
   }
 
-  if (postsError) {
-    console.error("Error loading group posts:", postsError);
-  }
 
   const handleJoinGroup = () => {
     joinGroupMutation.mutate(undefined, {

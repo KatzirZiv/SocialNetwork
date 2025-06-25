@@ -916,7 +916,9 @@ const Profile = () => {
                               alt="Post media"
                               style={{ maxWidth: "100%", borderRadius: "8px" }}
                               onError={(e) => {
-                                e.target.src = `http://localhost:5000/default-post.png`;
+                                if (!e.target.src.includes('default-post.png')) {
+                                  e.target.src = `http://localhost:5000/default-post.png`;
+                                }
                               }}
                             />
                           </Box>
