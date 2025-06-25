@@ -72,6 +72,14 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       const post = await Post.create(req.body);
       await post.populate("author", "username profilePicture");
       await post.populate("group", "name");
+      // הוספת הפוסט למערך הפוסטים של הקבוצה (אם קיים group)
+      if (post.group) {
+        try {
+          await Group.findByIdAndUpdate(post.group, { $addToSet: { posts: post._id } });
+        } catch (e) {
+          console.warn('Failed to add post to group:', e.message);
+        }
+      }
       console.log("Post created:", post);
       res.status(201).json({
         success: true,
@@ -403,3 +411,120 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
     data: post,
   });
 });
+
+// @desc    Get number of new posts per month (last 12 months)
+// @route   GET /api/posts/stats/new-per-month
+// @access  Public/Admin
+exports.getNewPostsPerMonth = async (req, res) => {
+  try {
+    const now = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        label: d.toLocaleString('default', { month: 'short', year: '2-digit' })
+      });
+    }
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const posts = await Post.aggregate([
+      { $match: { createdAt: { $gte: start } } },
+      {
+        $group: {
+          _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const data = months.map(m => {
+      const found = posts.find(p => p._id.year === m.year && p._id.month === m.month);
+      return { ...m, count: found ? found.count : 0 };
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// @desc    Get top active users (by number of posts)
+// @route   GET /api/posts/stats/top-users
+// @access  Private/Admin
+exports.topActiveUsers = async (req, res) => {
+  try {
+    const topUsers = await Post.aggregate([
+      { $group: { _id: "$author", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 7 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          _id: 0,
+          userId: "$user._id",
+          username: "$user.username",
+          profilePicture: "$user.profilePicture",
+          count: 1
+        }
+      }
+    ]);
+    res.json({ success: true, data: topUsers });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// @desc    Get posts count by day of week
+// @route   GET /api/posts/stats/by-day-of-week
+// @access  Private/Admin
+exports.postsByDayOfWeek = async (req, res) => {
+  try {
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const posts = await Post.aggregate([
+      {
+        $group: {
+          _id: { $dayOfWeek: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    // MongoDB: 1=Sunday ... 7=Saturday
+    const data = days.map((day, i) => {
+      const found = posts.find(p => p._id === i + 1);
+      return { day, count: found ? found.count : 0 };
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// @desc    Get posts count by hour of day
+// @route   GET /api/posts/stats/by-hour
+// @access  Private/Admin
+exports.postsByHour = async (req, res) => {
+  try {
+    const posts = await Post.aggregate([
+      {
+        $group: {
+          _id: { $hour: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const data = Array.from({ length: 24 }, (_, i) => {
+      const found = posts.find(p => p._id === i);
+      return { hour: i, count: found ? found.count : 0 };
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
