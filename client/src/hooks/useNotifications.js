@@ -22,21 +22,9 @@ const useNotifications = (userId) => {
         message: `${req.sender?.username || 'Someone'} sent you a friend request`,
         avatar: req.sender?.profilePicture || '/default-profile.png',
       }));
-      // Fetch group join requests for admins
-      const groupJoinRes = await users.getGroupJoinRequests();
-      const groupJoin = (groupJoinRes?.data?.data || []).map(req => ({
-        type: 'group_join_request',
-        from: req.user,
-        group: req.group,
-        createdAt: req.createdAt,
-        status: req.status,
-        _id: req._id,
-        read: false,
-        message: `${req.user?.username || 'Someone'} requested to join your group "${req.group?.name || ''}"`,
-        avatar: req.user?.profilePicture || '/default-profile.png',
-      }));
-      setNotifications([...incoming, ...groupJoin]);
-      setUnreadCount(incoming.length + groupJoin.length); // You can add logic to track read/unread if needed
+      // Remove group join requests fetching
+      setNotifications([...incoming]);
+      setUnreadCount(incoming.length); // Only count friend requests
     } catch (err) {
       setNotifications([]);
       setUnreadCount(0);
