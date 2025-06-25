@@ -160,7 +160,7 @@ const Groups = () => {
     const myJoinRequest = myJoinRequestData?.data?.data;
 
     return (
-      <Grid item xs={12} sm={6} md={4} key={group._id}>
+      <Grid gridColumn="span 12" sx={{ '@media (min-width:600px)': { gridColumn: 'span 6' }, '@media (min-width:900px)': { gridColumn: 'span 4' } }} key={group._id}>
         <Card>
           <CardContent>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -343,7 +343,7 @@ const Groups = () => {
             : "No groups available."}
         </Alert>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container columns={12} spacing={3}>
           {filteredGroups.map((group) => (
             <GroupCardWithJoinState
               key={group._id}
