@@ -122,3 +122,53 @@ body {
 h1, h2, h3, .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3 {
   font-family: 'CustomRobotoBold', 'Roboto', Arial, sans-serif !important;
 }
+
+.project-ui-btn {
+  padding: 8px 28px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 1px 4px rgba(255,182,213,0.08);
+}
+.project-ui-btn.contained {
+  background: #ffb6d5;
+  color: #fff;
+  border: 1.5px solid #ffb6d5;
+}
+.project-ui-btn.contained:hover {
+  background: #ffd1ea;
+  color: #ff4fa3;
+  border: 1.5px solid #ffb6d5;
+}
+.project-ui-btn.outlined {
+  background: #fff;
+  color: #ffb6d5;
+  border: 1.5px solid #ffb6d5;
+}
+.project-ui-btn.outlined:hover {
+  background: #ffd1ea;
+  color: #ff4fa3;
+  border: 1.5px solid #ffb6d5;
+}
+.custom-filter-btn {
+  padding: 7px 22px;
+  border-radius: 20px;
+  border: 1.5px solid #ffb6d5;
+  background: #fff;
+  color: #ffb6d5;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 1px 4px rgba(255,182,213,0.08);
+}
+.custom-filter-btn:hover {
+  background: #ffd1ea;
+  color: #ff4fa3;
+  border: 1.5px solid #ffb6d5;
+}

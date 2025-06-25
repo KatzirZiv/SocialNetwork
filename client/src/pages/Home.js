@@ -48,6 +48,9 @@ import { Link } from "react-router-dom";
 import PostMenu from "../components/PostMenu";
 import CommentMenu from "../components/CommentMenu";
 import StatisticsGraphs from '../components/StatisticsGraphs';
+import { DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const Home = () => {
   const { user } = useAuth();
@@ -72,10 +75,33 @@ const Home = () => {
   const [editCommentContent, setEditCommentContent] = useState("");
   const [optimisticLikes, setOptimisticLikes] = useState({});
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    group: '',
+    author: '',
+    mediaType: '',
+    startDate: '',
+    endDate: '',
+    sort: 'desc',
+  });
+  const [pendingFilters, setPendingFilters] = useState(filters);
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
-    queryKey: ["posts"],
-    queryFn: () => posts.getAll(),
+    queryKey: ["posts", filters],
+    queryFn: () => posts.getAll({
+      group: filters.group,
+      author: filters.author,
+      mediaType: filters.mediaType,
+      startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
+      endDate: filters.endDate
+        ? (() => {
+            const d = new Date(filters.endDate);
+            d.setHours(23, 59, 59, 999);
+            return d.toISOString();
+          })()
+        : undefined,
+      sort: filters.sort,
+    }),
   });
 
   const { data: groupsData, isLoading: groupsLoading } = useQuery({
@@ -360,6 +386,195 @@ const Home = () => {
           boxSizing: 'border-box',
         }}
       >
+        {/* Filter Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <button
+            className="project-ui-btn contained"
+            style={{
+              background: '#ffb6d5',
+              color: '#fff',
+              border: '1.5px solid #ffb6d5',
+              boxShadow: '0 1px 4px rgba(255,182,213,0.08)',
+              padding: '8px 28px',
+              borderRadius: '20px',
+              fontWeight: 600,
+              fontSize: '1rem',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              transition: 'background 0.18s, color 0.18s, box-shadow 0.18s',
+            }}
+            onClick={() => { setPendingFilters(filters); setFilterDialogOpen(true); }}
+          >
+            <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: 0.5 }}>Filter</span>
+          </button>
+        </Box>
+        {filterDialogOpen && (
+          <div className="custom-modal-overlay">
+            <div className="custom-modal project-ui-modal">
+              <h2 style={{
+                margin: 0,
+                marginBottom: 18,
+                fontWeight: 700,
+                fontSize: 24,
+                color: '#ff4fa3',
+                fontFamily: 'Inter, Roboto, Arial, sans-serif',
+                letterSpacing: 0.5
+              }}>Filter Posts</h2>
+              <label>
+                Group
+                <select value={pendingFilters.group} onChange={e => setPendingFilters(f => ({ ...f, group: e.target.value }))}>
+                  <option value="">All</option>
+                  {groupsList.map(group => (
+                    <option key={group._id} value={group._id}>{group.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Author ID
+                <input
+                  type="text"
+                  value={pendingFilters.author}
+                  onChange={e => setPendingFilters(f => ({ ...f, author: e.target.value }))}
+                  placeholder="Enter user ID or leave blank for all"
+                />
+              </label>
+              <label>
+                Media Type
+                <select value={pendingFilters.mediaType} onChange={e => setPendingFilters(f => ({ ...f, mediaType: e.target.value }))}>
+                  <option value="">All</option>
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                  <option value="text">Text Only</option>
+                </select>
+              </label>
+              <label>
+                Start Date
+                <input
+                  type="date"
+                  value={pendingFilters.startDate}
+                  onChange={e => setPendingFilters(f => ({ ...f, startDate: e.target.value }))}
+                />
+              </label>
+              <label>
+                End Date
+                <input
+                  type="date"
+                  value={pendingFilters.endDate}
+                  onChange={e => setPendingFilters(f => ({ ...f, endDate: e.target.value }))}
+                />
+              </label>
+              <label>
+                Sort
+                <select value={pendingFilters.sort} onChange={e => setPendingFilters(f => ({ ...f, sort: e.target.value }))}>
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
+              </label>
+              <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
+                <button className="project-ui-btn outlined" onClick={() => setPendingFilters({ group: '', author: '', mediaType: '', startDate: '', endDate: '', sort: 'desc' })}>
+                  Reset Filters
+                </button>
+                <button className="project-ui-btn outlined" onClick={() => setFilterDialogOpen(false)}>Cancel</button>
+                <button className="project-ui-btn contained" onClick={() => { setFilters(pendingFilters); setFilterDialogOpen(false); }}>Apply</button>
+              </div>
+            </div>
+            <style>{`
+              .custom-modal-overlay {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.18);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+              }
+              .custom-modal.project-ui-modal {
+                background: #fff;
+                padding: 36px 32px 28px 32px;
+                border-radius: 18px;
+                min-width: 340px;
+                box-shadow: 0 2px 16px rgba(255,182,213,0.18), 0 2px 8px rgba(0,0,0,0.04);
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                font-family: 'Inter', 'Roboto', Arial, sans-serif;
+              }
+              .custom-modal label {
+                display: flex;
+                flex-direction: column;
+                font-weight: 600;
+                color: #222;
+                margin-bottom: 2px;
+                font-size: 15px;
+                gap: 4px;
+              }
+              .custom-modal input, .custom-modal select {
+                margin-top: 2px;
+                padding: 8px 10px;
+                border-radius: 10px;
+                border: 1px solid #ffd1ea;
+                font-size: 1rem;
+                background: #f7f9fb;
+                color: #222;
+                font-family: inherit;
+                transition: border 0.2s;
+              }
+              .custom-modal input:focus, .custom-modal select:focus {
+                outline: none;
+                border: 1.5px solid #ffb6d5;
+                background: #fff;
+              }
+              .project-ui-btn {
+                padding: 8px 28px;
+                border-radius: 20px;
+                font-weight: 600;
+                font-size: 1rem;
+                font-family: inherit;
+                border: none;
+                cursor: pointer;
+                transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+                box-shadow: 0 1px 4px rgba(255,182,213,0.08);
+              }
+              .project-ui-btn.contained {
+                background: #ffb6d5;
+                color: #fff;
+                border: 1.5px solid #ffb6d5;
+              }
+              .project-ui-btn.contained:hover {
+                background: #ffd1ea;
+                color: #ff4fa3;
+                border: 1.5px solid #ffb6d5;
+              }
+              .project-ui-btn.outlined {
+                background: #fff;
+                color: #ffb6d5;
+                border: 1.5px solid #ffb6d5;
+              }
+              .project-ui-btn.outlined:hover {
+                background: #ffd1ea;
+                color: #ff4fa3;
+                border: 1.5px solid #ffb6d5;
+              }
+              .custom-filter-btn {
+                padding: 7px 22px;
+                border-radius: 20px;
+                border: 1.5px solid #ffb6d5;
+                background: #fff;
+                color: #ffb6d5;
+                font-weight: 700;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+                box-shadow: 0 1px 4px rgba(255,182,213,0.08);
+              }
+              .custom-filter-btn:hover {
+                background: #ffd1ea;
+                color: #ff4fa3;
+                border: 1.5px solid #ffb6d5;
+              }
+            `}</style>
+          </div>
+        )}
         {user && (
           <Paper
             elevation={2}

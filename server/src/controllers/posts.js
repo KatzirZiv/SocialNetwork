@@ -123,6 +123,31 @@ exports.getPosts = asyncHandler(async (req, res, next) => {
       ];
     }
 
+    // Date range filter
+    if (req.query.startDate || req.query.endDate) {
+      query.createdAt = {};
+      if (req.query.startDate) {
+        query.createdAt.$gte = new Date(req.query.startDate);
+      }
+      if (req.query.endDate) {
+        query.createdAt.$lte = new Date(req.query.endDate);
+      }
+    }
+
+    // Media type filter (text only means no media)
+    if (req.query.mediaType) {
+      if (req.query.mediaType === 'text') {
+        query.media = { $exists: false };
+      } else {
+        query.mediaType = req.query.mediaType;
+      }
+    }
+
+    // Determine sort order
+    let sortOrder = '-createdAt';
+    if (req.query.sort === 'asc') sortOrder = 'createdAt';
+    if (req.query.sort === 'desc') sortOrder = '-createdAt';
+
     // Get posts
     const posts = await Post.find(query)
       .populate("author", "username profilePicture")
@@ -135,7 +160,7 @@ exports.getPosts = asyncHandler(async (req, res, next) => {
           select: "username profilePicture",
         },
       })
-      .sort("-createdAt");
+      .sort(sortOrder);
 
     res.status(200).json({
       success: true,
