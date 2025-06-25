@@ -1,5 +1,6 @@
 const Group = require('../models/Group');
 const User = require('../models/User');
+const GroupJoinRequest = require('../models/GroupJoinRequest');
 const { validationResult } = require('express-validator');
 const multer = require('multer');
 const path = require('path');
@@ -38,12 +39,13 @@ exports.createGroup = async (req, res) => {
   }
 
   try {
-    const { name, description } = req.body;
+    const { name, description, privacy } = req.body;
 
     // Create group
     const group = await Group.create({
       name,
       description,
+      privacy: privacy || 'public',
       admin: req.user.id,
       members: [req.user.id]
     });
@@ -138,10 +140,11 @@ exports.updateGroup = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
     try {
-      const { name, description } = req.body;
+      const { name, description, privacy } = req.body;
       const updateFields = {};
       if (name) updateFields.name = name;
       if (description) updateFields.description = description;
+      if (privacy) updateFields.privacy = privacy;
       if (req.file) {
         updateFields.coverImage = `/uploads/${req.file.filename}`;
       }
@@ -218,41 +221,35 @@ exports.deleteGroup = async (req, res) => {
 exports.joinGroup = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id);
-
     if (!group) {
-      return res.status(404).json({
-        success: false,
-        message: 'Group not found'
-      });
+      return res.status(404).json({ success: false, message: 'Group not found' });
     }
-
     // Check if user is already a member
     if (group.members.includes(req.user.id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already a member of this group'
-      });
+      return res.status(400).json({ success: false, message: 'Already a member of this group' });
     }
-
-    // Add user to group members
+    // For private groups, create a join request
+    if (group.privacy === 'private') {
+      const existingRequest = await GroupJoinRequest.findOne({ group: group._id, user: req.user._id, status: 'pending' });
+      if (existingRequest) {
+        return res.status(400).json({ success: false, message: 'Join request already sent' });
+      }
+      await GroupJoinRequest.create({
+        group: group._id,
+        user: req.user._id,
+        receiver: group.admin,
+        status: 'pending'
+      });
+      return res.status(200).json({ success: true, message: 'Join request sent. Waiting for admin approval.' });
+    }
+    // Public group: add user to members
     group.members.push(req.user.id);
     await group.save();
-
-    // Add group to user's groups
-    await User.findByIdAndUpdate(req.user.id, {
-      $push: { groups: group._id }
-    });
-
-    res.status(200).json({
-      success: true,
-      data: group
-    });
+    await User.findByIdAndUpdate(req.user.id, { $push: { groups: group._id } });
+    res.status(200).json({ success: true, data: group });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -512,5 +509,121 @@ exports.topGroupsByActivity = async (req, res) => {
     res.json({ success: true, data: topGroups });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// @desc    Get join requests for a group (admin only)
+// @route   GET /api/groups/:id/join-requests
+// @access  Private (admin only)
+exports.getJoinRequests = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    const requests = await GroupJoinRequest.find({ group: group._id, status: 'pending' })
+      .populate('user', 'username profilePicture');
+    res.status(200).json({ success: true, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Accept a join request (admin only)
+// @route   POST /api/groups/:id/join-requests/:requestId/accept
+// @access  Private (admin only)
+exports.acceptJoinRequest = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    const request = await GroupJoinRequest.findById(req.params.requestId);
+    if (!request || request.group.toString() !== group._id.toString() || request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'No such join request' });
+    }
+    // Add to members
+    group.members.push(request.user);
+    await group.save();
+    await User.findByIdAndUpdate(request.user, { $push: { groups: group._id } });
+    request.status = 'accepted';
+    await request.save();
+    res.status(200).json({ success: true, message: 'User added to group' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Decline a join request (admin only)
+// @route   POST /api/groups/:id/join-requests/:requestId/decline
+// @access  Private (admin only)
+exports.declineJoinRequest = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    if (group.admin.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    const request = await GroupJoinRequest.findById(req.params.requestId);
+    if (!request || request.group.toString() !== group._id.toString() || request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'No such join request' });
+    }
+    request.status = 'rejected';
+    await request.save();
+    res.status(200).json({ success: true, message: 'Join request declined' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Cancel join request
+// @route   DELETE /api/groups/:id/join-request
+// @access  Private
+exports.cancelJoinRequest = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    // Find and delete the pending join request for this user and group
+    const request = await GroupJoinRequest.findOneAndDelete({ group: group._id, user: req.user._id, status: 'pending' });
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'No pending join request found' });
+    }
+    return res.status(200).json({ success: true, message: 'Join request cancelled' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Get current user's join request for a group
+// @route   GET /api/groups/:id/my-join-request
+// @access  Private
+exports.getMyJoinRequest = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ success: false, message: 'Group not found' });
+    }
+    const request = await GroupJoinRequest.findOne({ group: group._id, user: req.user._id });
+    // Backend check: if request is accepted but user is not a member, treat as no active join request
+    if (request && request.status === 'accepted' && !group.members.map(m => m.toString()).includes(req.user._id.toString())) {
+      return res.status(200).json({ success: true, data: null });
+    }
+    if (!request) {
+      return res.status(200).json({ success: true, data: null });
+    }
+    return res.status(200).json({ success: true, data: request });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 }; 

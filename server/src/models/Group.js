@@ -36,6 +36,11 @@ const groupSchema = new mongoose.Schema({
   coverImage: {
     type: String, // URL to cover image
     default: '/uploads/default_cover.png'
+  },
+  privacy: {
+    type: String,
+    enum: ['public', 'private'],
+    default: 'public',
   }
 });
 

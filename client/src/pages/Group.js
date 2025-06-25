@@ -43,6 +43,7 @@ import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Close as CloseIcon,
+  Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -89,6 +90,14 @@ const Group = () => {
   const [error, setError] = useState("");
   const [transferAdminDialogOpen, setTransferAdminDialogOpen] = useState(false);
   const [selectedNewAdmin, setSelectedNewAdmin] = useState(null);
+  const [joinRequests, setJoinRequests] = useState([]);
+  const { data: myJoinRequestData, refetch: refetchMyJoinRequest } = useQuery({
+    queryKey: ['myJoinRequest', id, currentUser?._id],
+    queryFn: () => groups.getMyJoinRequest(id),
+    enabled: !!currentUser?._id,
+  });
+  const myJoinRequest = myJoinRequestData?.data?.data;
+  console.log('myJoinRequest', myJoinRequest);
 
   const {
     data: groupData,
@@ -120,7 +129,11 @@ const Group = () => {
   const joinGroupMutation = useMutation({
     mutationFn: () => groups.join(id),
     onSuccess: () => {
+      refetchMyJoinRequest();
       queryClient.invalidateQueries(["group", id]);
+    },
+    onSettled: () => {
+      refetchMyJoinRequest();
     },
   });
 
@@ -248,6 +261,17 @@ const Group = () => {
       setTransferAdminDialogOpen(false);
       setSelectedNewAdmin(null);
       leaveGroupMutation.mutate();
+    },
+  });
+
+  const cancelJoinRequestMutation = useMutation({
+    mutationFn: () => groups.cancelJoinRequest(id),
+    onSuccess: () => {
+      refetchMyJoinRequest();
+      queryClient.invalidateQueries(["group", id]);
+    },
+    onSettled: () => {
+      refetchMyJoinRequest();
     },
   });
 
@@ -422,6 +446,14 @@ const Group = () => {
     }
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (isAdmin && group?._id) {
+      groups.getJoinRequests(group._id).then(res => {
+        setJoinRequests(res.data.data || []);
+      });
+    }
+  }, [isAdmin, group?._id]);
+
   if (groupLoading) {
     return (
       <Box
@@ -456,6 +488,38 @@ const Group = () => {
   if (postsError) {
     console.error("Error loading group posts:", postsError);
   }
+
+  const handleJoinGroup = () => {
+    joinGroupMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        if (group.privacy === 'private') {
+          refetchMyJoinRequest();
+          queryClient.invalidateQueries(["group", id]);
+        }
+      },
+      onError: (error) => {
+        if (error.message === 'Join request already sent') {
+          refetchMyJoinRequest();
+          queryClient.invalidateQueries(["group", id]);
+        } else {
+          setError(error.message || 'Failed to join group');
+        }
+      }
+    });
+  };
+
+  const handleAcceptJoinRequest = (userId) => {
+    groups.acceptJoinRequest(group._id, userId).then(() => {
+      setJoinRequests((prev) => prev.filter(u => u._id !== userId));
+      queryClient.invalidateQueries(["group", id]);
+    });
+  };
+
+  const handleDeclineJoinRequest = (userId) => {
+    groups.declineJoinRequest(group._id, userId).then(() => {
+      setJoinRequests((prev) => prev.filter(u => u._id !== userId));
+    });
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -590,18 +654,38 @@ const Group = () => {
                 Leave Group
               </Button>
             ) : (
-              <Button
-                variant="contained"
-                onClick={() => joinGroupMutation.mutate()}
-                disabled={joinGroupMutation.isLoading}
-                sx={{
-                  backgroundColor: "#ffb6d5",
-                  color: "#fff",
-                  "&:hover": { backgroundColor: "#ffd1ea" },
-                }}
-              >
-                Join Group
-              </Button>
+              group.privacy === 'private' ? (
+                myJoinRequest?.status === 'pending' ? (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={() => cancelJoinRequestMutation.mutate()}
+                    disabled={cancelJoinRequestMutation.isLoading}
+                    startIcon={<CancelIcon />}
+                    sx={{ backgroundColor: '#ffd1ea', color: '#ffb6d5', '&:hover': { backgroundColor: '#ffe6f2' } }}
+                  >
+                    Cancel Request
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    disabled={joinGroupMutation.isLoading}
+                    sx={{ backgroundColor: '#ffb6d5', color: '#fff', '&:hover': { backgroundColor: '#ffd1ea' } }}
+                    onClick={handleJoinGroup}
+                  >
+                    Request to Join
+                  </Button>
+                )
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleJoinGroup}
+                  disabled={joinGroupMutation.isLoading}
+                  sx={{ backgroundColor: '#ffb6d5', color: '#fff', '&:hover': { backgroundColor: '#ffd1ea' } }}
+                >
+                  Join Group
+                </Button>
+              )
             )}
           </Box>
         </Box>
@@ -978,43 +1062,65 @@ const Group = () => {
           {group.members?.length === 0 ? (
             <Alert severity="info">No members in this group yet.</Alert>
           ) : (
-            <List>
-              {group.members?.map((member) => (
-                <ListItem
-                  key={member._id}
-                  secondaryAction={
-                    member._id === group.admin?._id ? (
-                      <Chip label="Admin" color="primary" size="small" />
-                    ) : isAdmin ? (
-                      <Button
-                        color="error"
-                        size="small"
-                        onClick={() => {
-                          setMemberToRemove(member);
-                          setRemoveMemberDialogOpen(true);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    ) : null
-                  }
-                >
-                  <ListItemAvatar>
-                    <Avatar
-                      src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
-                      alt={member.username}
-                      onError={e => { e.target.src = "/default-profile.png"; }}
-                    />
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={member.username}
-                    secondary={
-                      member._id === group.admin?._id ? "Group Admin" : "Member"
+            <>
+              {isAdmin && joinRequests.length > 0 && (
+                <Paper sx={{ p: 2, mb: 2, background: '#fff7fa' }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>Pending Join Requests</Typography>
+                  <List>
+                    {joinRequests.map((user) => (
+                      <ListItem key={user._id} secondaryAction={
+                        <>
+                          <Button size="small" color="primary" onClick={() => handleAcceptJoinRequest(user._id)} sx={{ mr: 1 }}>Accept</Button>
+                          <Button size="small" color="error" onClick={() => handleDeclineJoinRequest(user._id)}>Decline</Button>
+                        </>
+                      }>
+                        <ListItemAvatar>
+                          <Avatar src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : '/default-profile.png'} />
+                        </ListItemAvatar>
+                        <ListItemText primary={user.username} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+              <List>
+                {group.members?.map((member) => (
+                  <ListItem
+                    key={member._id}
+                    secondaryAction={
+                      member._id === group.admin?._id ? (
+                        <Chip label="Admin" color="primary" size="small" />
+                      ) : isAdmin ? (
+                        <Button
+                          color="error"
+                          size="small"
+                          onClick={() => {
+                            setMemberToRemove(member);
+                            setRemoveMemberDialogOpen(true);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      ) : null
                     }
-                  />
-                </ListItem>
-              ))}
-            </List>
+                  >
+                    <ListItemAvatar>
+                      <Avatar
+                        src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
+                        alt={member.username}
+                        onError={e => { e.target.src = "/default-profile.png"; }}
+                      />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={member.username}
+                      secondary={
+                        member._id === group.admin?._id ? "Group Admin" : "Member"
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
           )}
         </Paper>
       )}

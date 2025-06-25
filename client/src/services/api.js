@@ -133,6 +133,7 @@ export const users = {
     api.put(`/users/${id}/password`, data, {
       headers: { 'Content-Type': 'application/json' },
     }),
+  getGroupJoinRequests: () => api.get('/users/group-join-requests'),
 };
 
 // Group endpoints
@@ -164,7 +165,17 @@ export const groups = {
     }
   },
   delete: (id) => api.delete(`/groups/${id}`),
-  join: (id) => api.post(`/groups/${id}/join`),
+  join: async (id) => {
+    try {
+      const response = await api.post(`/groups/${id}/join`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.data?.message === 'Join request already sent') {
+        throw new Error('Join request already sent');
+      }
+      throw error;
+    }
+  },
   leave: (id) => api.post(`/groups/${id}/leave`),
   invite: (id, userId) =>
     api.post(
@@ -186,6 +197,11 @@ export const groups = {
     ),
   transferAdmin: (id, newAdminId) =>
     api.post(`/groups/${id}/transfer-admin`, { newAdminId }),
+  getJoinRequests: (id) => api.get(`/groups/${id}/join-requests`),
+  acceptJoinRequest: (id, userId) => api.post(`/groups/${id}/join-requests/${userId}/accept`),
+  declineJoinRequest: (id, userId) => api.post(`/groups/${id}/join-requests/${userId}/decline`),
+  cancelJoinRequest: (id) => api.delete(`/groups/${id}/join-request`),
+  getMyJoinRequest: (id) => api.get(`/groups/${id}/my-join-request`),
 };
 
 // Post endpoints

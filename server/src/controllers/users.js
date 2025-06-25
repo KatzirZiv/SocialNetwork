@@ -7,6 +7,7 @@ const asyncHandler = require('../middleware/async');
 const ErrorResponse = require('../utils/errorResponse');
 const { validationResult } = require('express-validator');
 const FriendRequest = require('../models/FriendRequest');
+const GroupJoinRequest = require('../models/GroupJoinRequest');
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads');
@@ -693,5 +694,29 @@ exports.changePassword = async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+};
+
+// @desc    Get incoming group join requests (for group admins)
+// @route   GET /api/users/group-join-requests
+// @access  Private
+exports.getGroupJoinRequests = async (req, res) => {
+  try {
+    // TEST: Try a basic find to check model/collection access
+    try {
+      const testAll = await GroupJoinRequest.find();
+      console.log('TEST GroupJoinRequest.find() succeeded, count:', testAll.length);
+    } catch (testErr) {
+      console.error('TEST GroupJoinRequest.find() failed:', testErr);
+    }
+    console.log('getGroupJoinRequests called for user:', req.user?._id);
+    const requests = await GroupJoinRequest.find({ receiver: req.user._id, status: 'pending' })
+      .populate('user', 'username profilePicture')
+      .populate('group', 'name');
+    console.log('GroupJoinRequest results:', requests);
+    res.status(200).json({ success: true, data: requests });
+  } catch (error) {
+    console.error('Error in getGroupJoinRequests:', error, error?.stack);
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 }; 
