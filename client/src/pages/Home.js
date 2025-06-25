@@ -47,7 +47,6 @@ import FriendsList from "../components/FriendsList";
 import { Link } from "react-router-dom";
 import PostMenu from "../components/PostMenu";
 import CommentMenu from "../components/CommentMenu";
-import StatisticsGraphs from '../components/StatisticsGraphs';
 
 const Home = () => {
   const { user } = useAuth();
@@ -289,21 +288,6 @@ const Home = () => {
     }
   }, [editPostDialogOpen, editingPost]);
 
-  useEffect(() => {
-    if (imagePreview) {
-      const canvas = document.getElementById('image-preview-canvas');
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        const img = new window.Image();
-        img.onload = function () {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        img.src = imagePreview;
-      }
-    }
-  }, [imagePreview]);
-
   if (postsLoading || groupsLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -320,399 +304,383 @@ const Home = () => {
     : [];
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 0, md: '24px' },
-        alignItems: 'flex-start',
-        width: '100%',
-        minWidth: 0,
-        minHeight: '100vh',
-        boxSizing: 'border-box',
-        px: 0,
-        m: 0,
-      }}
-    >
-      {/* Left: Statistics */}
-      <Box
-        sx={{
-          flex: '0 0 260px',
-          maxWidth: 260,
-          width: { xs: '100%', md: 260 },
-          display: { xs: 'none', md: 'block' },
-          p: 0,
-          m: 0,
-        }}
-      >
-        <Box sx={{ m: 0, p: 0 }}>
-          <StatisticsGraphs />
-        </Box>
-      </Box>
-      {/* Center: Posts */}
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 500,
-          maxWidth: { md: 'calc(100vw - 520px)' },
-          width: '100%',
-          margin: 0,
-          boxSizing: 'border-box',
-        }}
-      >
-        {user && (
-          <Paper
-            elevation={2}
-            sx={{ p: 3, mb: 4, borderRadius: 3, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Avatar
-                src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
-                sx={{ mr: 2, width: 48, height: 48 }}
-                onError={e => { e.target.src = "/default-profile.png"; }}
-              />
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder={`What's on your mind, ${user.username}?`}
-                value={newPost}
-                onChange={(e) => setNewPost(e.target.value)}
-                multiline
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 30,
-                    bgcolor: "#f0f2f5",
-                    "& fieldset": {
-                      border: "none",
-                    },
-                  },
-                }}
-              />
-            </Box>
-            {(imagePreview || videoPreview) && (
-              <Box sx={{ position: "relative", mb: 2 }}>
-                <IconButton
-                  onClick={imagePreview ? handleRemoveImage : handleRemoveVideo}
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    bgcolor: "rgba(0,0,0,0.6)",
-                    color: "white",
-                    "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
-                  }}
-                >
-                  <CloseIcon />
-                </IconButton>
-                {imagePreview && (
-                  <canvas
-                    id="image-preview-canvas"
-                    width={400}
-                    height={225}
-                    style={{ width: '100%', borderRadius: '12px', display: 'block' }}
-                  />
+    <Box sx={{ bgcolor: "#f5f6fa", minHeight: "100vh", py: 4 }}>
+      <Container maxWidth={false} sx={{ maxWidth: 1000, mx: "auto", px: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 4,
+            alignItems: "flex-start",
+            justifyContent: "center",
+          }}
+        >
+          {/* Feed */}
+          <Box sx={{ flex: 1, minWidth: 0, maxWidth: 500, mx: "auto" }}>
+            <Paper
+              sx={{
+                p: 1.5,
+                mb: 2,
+                borderRadius: 2,
+                boxShadow: "0 1px 6px rgba(0,0,0,0.03)",
+              }}
+            >
+              <Box component="form" onSubmit={handlePostSubmit}>
+                {error && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {error}
+                  </Alert>
                 )}
-                {videoPreview && <video src={videoPreview} controls style={{ width: "100%", borderRadius: "12px" }} />}
-              </Box>
-            )}
-            <Divider sx={{ my: 2 }} />
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Box>
-                <input
-                  type="file"
-                  id="image-upload"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{ display: "none" }}
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  placeholder="What's on your mind?"
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  sx={{ mb: 1, bgcolor: "#fff", borderRadius: 1, fontSize: 15 }}
+                  inputProps={{ style: { fontSize: 15 } }}
                 />
-                <input
-                  type="file"
-                  id="video-upload"
-                  accept="video/*"
-                  onChange={handleVideoChange}
-                  style={{ display: "none" }}
-                />
-                <IconButton onClick={() => document.getElementById('image-upload').click()} size="small">
-                  <ImageIcon fontSize="small" /> Photo
-                </IconButton>
-                <IconButton onClick={handleVideoClick} size="small">
-                  <VideoLibraryIcon fontSize="small" /> Video
-                </IconButton>
-              </Box>
-              <Button
-                type="submit"
-                variant="contained"
-                onClick={handlePostSubmit}
-                disabled={
-                  createPostMutation.isLoading ||
-                  (!newPost.trim() && !imageFile && !videoFile)
-                }
-                sx={{ borderRadius: 2 }}
-              >
-                Post
-              </Button>
-            </Box>
-          </Paper>
-        )}
-        {postsLoading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <Box sx={{ width: '100%', maxWidth: 680, margin: '0 auto' }}>
-            {postsList.map((post) => {
-              const isLikedByCurrentUser = post.likes.some(
-                (like) => like === user?._id || like?._id === user?._id
-              );
-              const hasCommentedByCurrentUser = post.comments.some(
-                (comment) =>
-                  comment.author === user?._id ||
-                  comment.author?._id === user?._id
-              );
-              return (
-                <Card
-                  key={post._id}
+                {imagePreview && (
+                  <Box sx={{ position: "relative", mb: 1 }}>
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "220px",
+                        borderRadius: "6px",
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={handleRemoveImage}
+                      sx={{
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        bgcolor: "rgba(0, 0, 0, 0.5)",
+                        "&:hover": { bgcolor: "rgba(0, 0, 0, 0.7)" },
+                      }}
+                    >
+                      <CloseIcon sx={{ color: "white", fontSize: 18 }} />
+                    </IconButton>
+                  </Box>
+                )}
+                {videoPreview && (
+                  <Box sx={{ position: "relative", mb: 1 }}>
+                    <video
+                      src={videoPreview}
+                      controls
+                      style={{ maxWidth: "100%", maxHeight: "220px", borderRadius: "6px" }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={handleRemoveVideo}
+                      sx={{ position: "absolute", top: 6, right: 6, bgcolor: "rgba(0, 0, 0, 0.5)", "&:hover": { bgcolor: "rgba(0, 0, 0, 0.7)" } }}
+                    >
+                      <CloseIcon sx={{ color: "white", fontSize: 18 }} />
+                    </IconButton>
+                  </Box>
+                )}
+                <Box
                   sx={{
-                    mb: 3,
-                    width: '100%',
-                    borderRadius: 3,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    margin: '0 0 24px 0',
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mt: 1,
                   }}
                 >
-                  <CardContent>
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", mb: 2 }}
-                    >
-                      <Avatar
-                        src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : "/default-profile.png"}
-                        alt={post.author?.username}
-                        component={Link}
-                        to={`/profile/${post.author?._id}`}
-                        sx={{ mr: 2 }}
-                        onError={e => { e.target.src = "/default-profile.png"; }}
-                      />
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography
-                          variant="h6"
+                  <Box>
+                    <input
+                      type="file"
+                      id="image-upload"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      style={{ display: "none" }}
+                    />
+                    <input
+                      type="file"
+                      id="video-upload"
+                      accept="video/*"
+                      onChange={handleVideoChange}
+                      style={{ display: "none" }}
+                    />
+                    <IconButton onClick={() => document.getElementById('image-upload').click()} size="small">
+                      <ImageIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton onClick={handleVideoClick} size="small">
+                      <VideoLibraryIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="small"
+                    disabled={
+                      createPostMutation.isLoading ||
+                      (!newPost.trim() && !imageFile && !videoFile)
+                    }
+                    sx={{ fontSize: 15, px: 2, py: 0.5, borderRadius: 2 }}
+                  >
+                    Post
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+            {/* Compact feed: narrower, smaller posts, less padding, smaller font */}
+            <Box sx={{ width: "100%" }}>
+              {postsList.map((post) => {
+                const isLikedByCurrentUser = post.likes.some(
+                  (like) => like === user?._id || like?._id === user?._id
+                );
+                const hasCommentedByCurrentUser = post.comments.some(
+                  (comment) =>
+                    comment.author === user?._id ||
+                    comment.author?._id === user?._id
+                );
+                return (
+                  <Card key={post._id} sx={{ mb: 3 }}>
+                    <CardContent>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 2 }}
+                      >
+                        <Avatar
+                          src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : "/default-profile.png"}
+                          alt={post.author?.username}
                           component={Link}
                           to={`/profile/${post.author?._id}`}
-                          sx={{ textDecoration: "none", color: "inherit", fontWeight: 'bold', fontSize: '1rem' }}
-                        >
-                          {post.author?.username}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
-                          {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      </Box>
-                      <PostMenu
-                        post={post}
-                        user={user}
-                        onEdit={() => {
-                          setEditingPost(post);
-                          setEditPostContent(post.content);
-                          setEditPostDialogOpen(true);
-                        }}
-                        onDelete={() => {
-                          setEditingPost(post);
-                          setDeletePostDialogOpen(true);
-                        }}
-                      />
-                    </Box>
-                    {post.group && (
-                      <Box sx={{ mb: 1 }}>
-                        <Chip
-                          label={`From group: ${post.group.name}`}
-                          component={Link}
-                          to={`/groups/${post.group._id}`}
-                          clickable
-                          color="primary"
-                          variant="outlined"
-                          sx={{ fontWeight: 500, fontSize: 13, mb: 0.5 }}
+                          sx={{ mr: 2 }}
+                          onError={e => { e.target.src = "/default-profile.png"; }}
                         />
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography
+                            variant="h6"
+                            component={Link}
+                            to={`/profile/${post.author?._id}`}
+                            sx={{ textDecoration: "none", color: "inherit" }}
+                          >
+                            {post.author?.username}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                        </Box>
+                        <PostMenu
+                          post={post}
+                          user={user}
+                          onEdit={() => {
+                            setEditingPost(post);
+                            setEditPostContent(post.content);
+                            setEditPostDialogOpen(true);
+                          }}
+                          onDelete={() => {
+                            setEditingPost(post);
+                            setDeletePostDialogOpen(true);
+                          }}
+                        />
+                      </Box>
+                      {/* Show group chip if post.group exists */}
+                      {post.group && (
+                        <Box sx={{ mb: 1 }}>
+                          <Chip
+                            label={`From group: ${post.group.name}`}
+                            component={Link}
+                            to={`/groups/${post.group._id}`}
+                            clickable
+                            color="primary"
+                            variant="outlined"
+                            sx={{ fontWeight: 500, fontSize: 13, mb: 0.5 }}
+                          />
+                        </Box>
+                      )}
+                      <Typography
+                        variant="body1"
+                        sx={{ mt: 1, whiteSpace: "pre-wrap" }}
+                      >
+                        {post.content}
+                      </Typography>
+                      {post.media && post.mediaType === 'video' ? (
+                        <Box sx={{ mt: 2 }}>
+                          <video
+                            src={`http://localhost:5000${post.media}`}
+                            controls
+                            style={{ maxWidth: "100%", borderRadius: "8px" }}
+                          />
+                        </Box>
+                      ) : post.media && post.mediaType === 'image' ? (
+                        <Box sx={{ mt: 2 }}>
+                          <img
+                            src={`http://localhost:5000${post.media}`}
+                            alt="Post media"
+                            style={{ maxWidth: "100%", borderRadius: "8px" }}
+                          />
+                        </Box>
+                      ) : null}
+                    </CardContent>
+                    <Divider />
+                    <CardActions sx={{ justifyContent: "space-around" }}>
+                      <Button
+                        sx={{
+                          color: isLikedByCurrentUser ? "#ec4899" : "inherit",
+                        }}
+                        startIcon={
+                          isLikedByCurrentUser ? (
+                            <FavoriteIcon />
+                          ) : (
+                            <FavoriteBorderIcon />
+                          )
+                        }
+                        onClick={() => handleLike(post._id)}
+                      >
+                        Like ({post.likes.length})
+                      </Button>
+                      <Button
+                        sx={{
+                          color: hasCommentedByCurrentUser
+                            ? "#ec4899"
+                            : "inherit",
+                        }}
+                        startIcon={<CommentIcon />}
+                        onClick={() => handleCommentClick(post._id)}
+                      >
+                        Comment ({post.comments.length})
+                      </Button>
+                      <Button
+                        startIcon={<ShareIcon />}
+                        sx={{ color: "inherit" }}
+                      >
+                        Share
+                      </Button>
+                    </CardActions>
+                    {openCommentBoxId === post._id && (
+                      <Box sx={{ p: 2 }}>
+                        <Divider sx={{ mb: 2 }} />
+                        <TextField
+                          fullWidth
+                          variant="outlined"
+                          placeholder="Write a comment..."
+                          value={commentTexts[post._id] || ""}
+                          onChange={(e) =>
+                            setCommentTexts({
+                              ...commentTexts,
+                              [post._id]: e.target.value,
+                            })
+                          }
+                        />
+                        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={() => handleCommentSubmit(post._id)}
+                            disabled={addCommentMutation.isLoading}
+                          >
+                            Post Comment
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setOpenCommentBoxId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
                       </Box>
                     )}
-                    <Typography
-                      variant="body1"
-                      sx={{ mt: 1, whiteSpace: "pre-wrap" }}
-                    >
-                      {post.content}
-                    </Typography>
-                    {post.media && post.mediaType === 'video' ? (
-                      <Box sx={{ mt: 2, borderRadius: '12px' }}>
-                        <video
-                          src={`http://localhost:5000${post.media}`}
-                          controls
-                          style={{ width: "100%", borderRadius: "12px", display: 'block' }}
-                        />
-                      </Box>
-                    ) : post.media && post.mediaType === 'image' ? (
-                      <Box sx={{ mt: 2, borderRadius: '12px' }}>
-                        <img
-                          src={`http://localhost:5000${post.media}`}
-                          alt="Post media"
-                          style={{ width: "100%", borderRadius: "12px", display: 'block' }}
-                        />
-                      </Box>
-                    ) : null}
-                  </CardContent>
-                  <Divider />
-                  <CardActions sx={{ justifyContent: "space-around" }}>
-                    <Button
-                      sx={{
-                        color: isLikedByCurrentUser ? "#ec4899" : "inherit",
-                        fontWeight: 'bold'
-                      }}
-                      startIcon={
-                        isLikedByCurrentUser ? (
-                          <FavoriteIcon />
-                        ) : (
-                          <FavoriteBorderIcon />
-                        )
-                      }
-                      onClick={() => handleLike(post._id)}
-                    >
-                      Like ({post.likes.length})
-                    </Button>
-                    <Button
-                      sx={{
-                        color: hasCommentedByCurrentUser
-                          ? "#ec4899"
-                          : "inherit",
-                        fontWeight: 'bold'
-                      }}
-                      startIcon={<CommentIcon />}
-                      onClick={() => handleCommentClick(post._id)}
-                    >
-                      Comment ({post.comments.length})
-                    </Button>
-                    <Button
-                      startIcon={<ShareIcon />}
-                      sx={{ color: "inherit", fontWeight: 'bold' }}
-                    >
-                      Share
-                    </Button>
-                  </CardActions>
-                  {openCommentBoxId === post._id && (
-                    <Box sx={{ p: 2 }}>
-                      <Divider sx={{ mb: 2 }} />
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar
-                        src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
-                        sx={{ mr: 2, width: 32, height: 32 }}
-                        onError={e => { e.target.src = "/default-profile.png"; }}
-                      />
-                      <TextField
-                        fullWidth
-                        variant="outlined"
-                        placeholder="Write a comment..."
-                        value={commentTexts[post._id] || ""}
-                        onChange={(e) =>
-                          setCommentTexts({
-                            ...commentTexts,
-                            [post._id]: e.target.value,
-                          })
-                        }
-                         sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 20,
-                          },
-                        }}
-                      />
-                      </Box>
-                      <Box sx={{ display: "flex", gap: 1, mt: 1, justifyContent: 'flex-end' }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleCommentSubmit(post._id)}
-                          disabled={addCommentMutation.isLoading}
-                        >
-                          Post Comment
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => setOpenCommentBoxId(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                  {post.comments.length > 0 && (
-                    <Box sx={{ p: 2 }}>
-                      <List>
-                        {post.comments.map((comment) => (
-                          <ListItem key={comment._id} alignItems="flex-start" sx={{ pl: 0 }}>
-                            <Avatar
-                              src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}` : "/default-profile.png"}
-                              alt={comment.author?.username}
-                              sx={{ mr: 2, width: 32, height: 32 }}
-                              onError={e => { e.target.src = "/default-profile.png"; }}
-                            />
-                            <Box sx={{ p: 1, borderRadius: 2, flexGrow: 1 }}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                <Typography
-                                  variant="subtitle2"
-                                  component={Link}
-                                  to={`/profile/${comment.author?._id}`}
+                    {post.comments.length > 0 && (
+                      <Box sx={{ p: 2 }}>
+                        <List>
+                          {post.comments.map((comment) => (
+                            <ListItem key={comment._id} alignItems="flex-start">
+                              <Avatar
+                                src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}` : "/default-profile.png"}
+                                alt={comment.author?.username}
+                                sx={{ mr: 2 }}
+                                onError={e => { e.target.src = "/default-profile.png"; }}
+                              />
+                              <Box>
+                                <Box
                                   sx={{
-                                    textDecoration: "none",
-                                    color: "inherit",
-                                    fontWeight: 'bold'
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
                                   }}
                                 >
-                                  {comment.author?.username}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="textSecondary"
-                                  sx={{ fontSize: '0.75rem' }}
-                                >
-                                  {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </Typography>
-                                {comment.author?._id === user?._id && (
-                                  <CommentMenu
-                                    comment={comment}
-                                    user={user}
-                                    onEdit={() => {
-                                      setEditingComment({
-                                        ...comment,
-                                        postId: post._id,
-                                      });
-                                      setEditCommentContent(comment.content);
-                                      setEditCommentDialogOpen(true);
+                                  <Typography
+                                    variant="subtitle2"
+                                    component={Link}
+                                    to={`/profile/${comment.author?._id}`}
+                                    sx={{
+                                      textDecoration: "none",
+                                      color: "inherit",
                                     }}
-                                    onDelete={() => {
-                                      setEditingComment({
-                                        ...comment,
-                                        postId: post._id,
-                                      });
-                                      setDeleteCommentDialogOpen(true);
-                                    }}
-                                  />
-                                )}
+                                  >
+                                    {comment.author?.username}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="textSecondary"
+                                  >
+                                    {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </Typography>
+                                  {comment.author?._id === user?._id && (
+                                    <CommentMenu
+                                      comment={comment}
+                                      user={user}
+                                      onEdit={() => {
+                                        setEditingComment({
+                                          ...comment,
+                                          postId: post._id,
+                                        });
+                                        setEditCommentContent(comment.content);
+                                        setEditCommentDialogOpen(true);
+                                      }}
+                                      onDelete={() => {
+                                        setEditingComment({
+                                          ...comment,
+                                          postId: post._id,
+                                        });
+                                        setDeleteCommentDialogOpen(true);
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+                                <Typography variant="body1">
+                                  {comment.content}
+                                </Typography>
                               </Box>
-                              <Typography variant="body1" sx={{ fontSize: '0.9rem' }}>
-                                {comment.content}
-                              </Typography>
-                            </Box>
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Box>
-                  )}
-                </Card>
-              );
-            })}
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    )}
+                  </Card>
+                );
+              })}
+            </Box>
           </Box>
-        )}
+          {/* Sidebar: Friend List */}
+          <Box
+            sx={{
+              width: 240,
+              minWidth: 180,
+              maxWidth: 260,
+              flexShrink: 0,
+              ml: 2,
+            }}
+          >
+            <Paper
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                bgcolor: "#fff",
+                border: "1px solid #f0f2f5",
+              }}
+            >
+              <FriendsList compact />
+            </Paper>
+          </Box>
+        </Box>
         <Dialog
           open={deletePostDialogOpen}
           onClose={() => setDeletePostDialogOpen(false)}
@@ -831,31 +799,7 @@ const Home = () => {
             </Button>
           </DialogActions>
         </Dialog>
-      </Box>
-      {/* Right: Friends */}
-      <Box
-        sx={{
-          flex: '0 0 260px',
-          maxWidth: 260,
-          width: { xs: '100%', md: 260 },
-          display: { xs: 'none', md: 'block' },
-          p: 0,
-          m: 0,
-        }}
-      >
-        <Paper
-          sx={{
-            p: 2,
-            borderRadius: 3,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            bgcolor: "#fff",
-            border: "1px solid #f0f2f5",
-            m: 0,
-          }}
-        >
-          <FriendsList compact />
-        </Paper>
-      </Box>
+      </Container>
     </Box>
   );
 };

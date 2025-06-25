@@ -38,7 +38,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { users } from "../services/api";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import BarChartIcon from '@mui/icons-material/BarChart';
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -116,7 +115,6 @@ const Layout = ({ children }) => {
     { text: "Home", icon: <HomeIcon />, path: "/" },
     { text: "Groups", icon: <GroupIcon />, path: "/groups" },
     { text: "Chat", icon: <ChatIcon />, path: "/chat" },
-    { text: "Statistics", icon: <BarChartIcon />, path: "/statistics" },
   ];
 
   const handleNavigation = (path) => {

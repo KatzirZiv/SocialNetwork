@@ -21,8 +21,7 @@ const {
   rejectFriendRequest,
   getFriendRequests,
   cancelFriendRequest,
-  getOutgoingFriendRequests,
-  getNewUsersPerMonth
+  getOutgoingFriendRequests
 } = require('../controllers/users');
 
 // Search users route - allow non-logged-in users but check auth if available
@@ -105,9 +104,6 @@ router.put('/friend-request/:requestId/reject', protect, rejectFriendRequest);
 
 // Outgoing friend requests
 router.get('/outgoing-friend-requests', protect, getOutgoingFriendRequests);
-
-// סטטיסטיקה: משתמשים חדשים בחודש
-router.get('/stats/new-per-month', getNewUsersPerMonth);
 
 // Catch-all for unknown /api/users/* routes - must be last
 router.use((req, res) => {

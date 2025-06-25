@@ -1,5 +1,4 @@
 import FriendRequests from './FriendRequests';
-import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   return (
@@ -11,9 +10,6 @@ const Navbar = () => {
           {user && (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <FriendRequests />
-              <Link to="/statistics" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600, marginLeft: 16 }}>
-                Statistics
-              </Link>
               {/* ... existing user menu ... */}
             </Box>
           )}
