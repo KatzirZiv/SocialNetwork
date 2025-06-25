@@ -109,7 +109,7 @@ function UsersLineChart({ data }) {
 function getProfilePictureUrl(profilePicture) {
   if (!profilePicture) return '/default-profile.png';
   if (profilePicture.startsWith('/uploads')) return `http://localhost:5000${profilePicture}`;
-  return profilePicture;
+  return '/default-profile.png';
 }
 
 function TopUsersChart({ data, compact }) {
