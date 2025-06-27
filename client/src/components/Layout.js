@@ -38,7 +38,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { users } from "../services/api";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import BarChartIcon from '@mui/icons-material/BarChart';
+import BarChartIcon from "@mui/icons-material/BarChart";
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -136,7 +136,9 @@ const Layout = ({ children }) => {
             onClick={() => setDrawerOpen(true)}
             sx={{ mr: 2 }}
           >
-            <MenuIcon />
+            <MenuIcon
+              sx={{ color: "#fff", textShadow: "1px 1px 4px rgba(0,0,0,0.7)" }}
+            />
           </IconButton>
 
           <Typography
@@ -146,7 +148,10 @@ const Layout = ({ children }) => {
             sx={{
               flexGrow: 1,
               textDecoration: "none",
-              color: "inherit",
+              color: "#fff",
+              textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+              fontWeight: 700,
+              letterSpacing: 1.5,
             }}
           >
             PING PONG
@@ -155,14 +160,29 @@ const Layout = ({ children }) => {
           {user ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <IconButton color="inherit" component={RouterLink} to="/groups">
-                <GroupIcon />
+                <GroupIcon
+                  sx={{
+                    color: "#fff",
+                    textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+                  }}
+                />
               </IconButton>
               <IconButton color="inherit" component={RouterLink} to="/chat">
-                <ChatIcon />
+                <ChatIcon
+                  sx={{
+                    color: "#fff",
+                    textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+                  }}
+                />
               </IconButton>
               <IconButton color="inherit" onClick={handleNotificationsClick}>
                 <Badge badgeContent={unreadCount} color="error">
-                  <NotificationsIcon />
+                  <NotificationsIcon
+                    sx={{
+                      color: "#fff",
+                      textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+                    }}
+                  />
                 </Badge>
               </IconButton>
               <Menu
@@ -235,13 +255,24 @@ const Layout = ({ children }) => {
               >
                 {user.profilePicture ? (
                   <Avatar
-                    src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
+                    src={
+                      user.profilePicture
+                        ? `http://localhost:5000${user.profilePicture}`
+                        : "/default-profile.png"
+                    }
                     alt={user.username}
                     sx={{ width: 32, height: 32 }}
-                    onError={e => { e.target.src = "/default-profile.png"; }}
+                    onError={(e) => {
+                      e.target.src = "/default-profile.png";
+                    }}
                   />
                 ) : (
-                  <AccountCircle />
+                  <AccountCircle
+                    sx={{
+                      color: "#fff",
+                      textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+                    }}
+                  />
                 )}
               </IconButton>
               <Menu

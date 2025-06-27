@@ -1,20 +1,49 @@
-import FriendRequests from './FriendRequests';
-import { Link } from 'react-router-dom';
+import FriendRequests from "./FriendRequests";
+import { Link } from "react-router-dom";
+import { AppBar, Toolbar, Box, Container, Typography } from "@mui/material";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
+  const { user } = useAuth();
   return (
     <AppBar position="static">
       <Container maxWidth="lg">
         <Toolbar>
-          {/* ... existing logo and navigation ... */}
-          
+          <Typography
+            variant="h6"
+            sx={{
+              color: "#fff",
+              textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+              flexGrow: 1,
+              fontWeight: 700,
+              letterSpacing: 1.5,
+            }}
+          >
+            PING PONG
+          </Typography>
           {user && (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <FriendRequests />
-              <Link to="/statistics" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600, marginLeft: 16 }}>
+              <Link
+                to="/statistics"
+                style={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  fontWeight: 600,
+                  marginLeft: 16,
+                }}
+              >
                 Statistics
               </Link>
-              <Link to="/settings" style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600, marginLeft: 16 }}>
+              <Link
+                to="/settings"
+                style={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  fontWeight: 600,
+                  marginLeft: 16,
+                }}
+              >
                 Settings
               </Link>
               {/* ... existing user menu ... */}
@@ -26,4 +55,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
