@@ -5,14 +5,8 @@ import {
   Box,
   TextField,
   Button,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
   IconButton,
   Paper,
-  Typography,
   CircularProgress,
   Alert,
   Snackbar,
@@ -26,7 +20,6 @@ import {
 import { users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import useNotifications from "../hooks/useNotifications";
-import UserAvatar from "./UserAvatar";
 import UserList from "./UserList";
 
 const AddFriend = () => {
@@ -345,7 +338,7 @@ const AddFriend = () => {
           getActions={getActions}
           avatarSize={48}
           divider={true}
-          onUserClick={user => handleProfileClick(user._id)}
+          onUserClick={(user) => handleProfileClick(user._id)}
           selectedUserId={null}
           showSearch={false}
         />

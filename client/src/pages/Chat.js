@@ -9,16 +9,8 @@ import {
   Paper,
   Typography,
   TextField,
-  Button,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-  Divider,
   CircularProgress,
   IconButton,
-  ListItemButton,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { messages, users } from "../services/api";
@@ -143,9 +135,7 @@ const Chat = () => {
       ? conversations.data.data
       : [];
     const conversation = conversationList.find((c) =>
-      c.participants.some(
-        (p) => p._id?.toString() === friend._id?.toString()
-      )
+      c.participants.some((p) => p._id?.toString() === friend._id?.toString())
     );
     return !conversation
       ? "No messages yet. Say hello!"
@@ -184,7 +174,11 @@ const Chat = () => {
         {/* Conversations List */}
         <Paper sx={{ width: 300, overflow: "auto" }}>
           <UserList
-            users={Array.isArray(friendsData?.data?.data) ? friendsData.data.data : []}
+            users={
+              Array.isArray(friendsData?.data?.data)
+                ? friendsData.data.data
+                : []
+            }
             loading={friendsLoading}
             emptyText="No friends found"
             getActions={getActions}
@@ -194,7 +188,7 @@ const Chat = () => {
             onUserClick={setSelectedUser}
             selectedUserId={selectedUser?._id}
             showSearch={false}
-            sx={{ position: 'relative' }}
+            sx={{ position: "relative" }}
           />
         </Paper>
 
@@ -212,11 +206,7 @@ const Chat = () => {
                   alignItems: "center",
                 }}
               >
-                <UserAvatar
-                  user={selectedUser}
-                  size={40}
-                  sx={{ mr: 2 }}
-                />
+                <UserAvatar user={selectedUser} size={40} sx={{ mr: 2 }} />
                 <Box>
                   <Typography variant="subtitle1">
                     <Link

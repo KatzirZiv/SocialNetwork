@@ -6,14 +6,8 @@ import {
   Box,
   Paper,
   Typography,
-  Avatar,
   Button,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
-  IconButton,
-  Divider,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -23,28 +17,15 @@ import {
   Tabs,
   Tab,
   Alert,
-  List,
-  ListItem,
-  Chip,
 } from "@mui/material";
 import {
   Edit as EditIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Comment as CommentIcon,
-  Share as ShareIcon,
   PersonAdd as PersonAddIcon,
   PersonRemove as PersonRemoveIcon,
-  Image as ImageIcon,
-  Close as CloseIcon,
   Cancel as CancelIcon,
-  Delete as DeleteIcon,
-  VideoLibrary as VideoLibraryIcon,
 } from "@mui/icons-material";
 import { users, posts } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import PostMenu from "../components/PostMenu";
-import CommentMenu from "../components/CommentMenu";
 import PostCard from "../components/PostCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import EditDialog from "../components/EditDialog";
@@ -67,7 +48,8 @@ const Profile = () => {
   const [profilePicPreview, setProfilePicPreview] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-  const [commentTexts, handleCommentChange, setCommentTexts] = useCommentInput();
+  const [commentTexts, handleCommentChange, setCommentTexts] =
+    useCommentInput();
   const [activeTab, setActiveTab] = useState(0);
   const [newPost, setNewPost] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -85,7 +67,10 @@ const Profile = () => {
 
   // Dialog states for editing/deleting posts/comments
   const { open, openDialog, closeDialog } = useDialogState([
-    'editPost', 'editComment', 'deletePost', 'deleteComment'
+    "editPost",
+    "editComment",
+    "deletePost",
+    "deleteComment",
   ]);
 
   const {
@@ -153,7 +138,11 @@ const Profile = () => {
     addComment,
     updateComment,
     deleteComment,
-  } = usePostMutations({ queryClient, user: currentUser, postsQueryKey: ["userPosts", id] });
+  } = usePostMutations({
+    queryClient,
+    user: currentUser,
+    postsQueryKey: ["userPosts", id],
+  });
 
   const sendFriendRequestMutation = useMutation({
     mutationFn: () => users.sendFriendRequest(id),
@@ -287,9 +276,12 @@ const Profile = () => {
 
   const handleCommentSubmit = (postId) => {
     if (!commentTexts[postId]?.trim()) return;
-    addComment.mutate({ postId, content: commentTexts[postId] }, {
-      onSuccess: () => setCommentTexts("")
-    });
+    addComment.mutate(
+      { postId, content: commentTexts[postId] },
+      {
+        onSuccess: () => setCommentTexts(""),
+      }
+    );
   };
 
   const handlePostSubmit = async (e) => {
@@ -300,16 +292,16 @@ const Profile = () => {
     let file = null;
     if (imageFile) {
       file = imageFile;
-      mediaType = 'image';
+      mediaType = "image";
     } else if (videoFile) {
       file = videoFile;
-      mediaType = 'video';
+      mediaType = "video";
     }
     const formData = new FormData();
-    formData.append('content', newPost);
+    formData.append("content", newPost);
     if (file) {
-      formData.append('media', file);
-      formData.append('mediaType', mediaType);
+      formData.append("media", file);
+      formData.append("mediaType", mediaType);
     }
     createPost.mutate(formData, {
       onError: (error) => {
@@ -322,7 +314,7 @@ const Profile = () => {
         setVideoFile(null);
         setVideoPreview(null);
         setError("");
-      }
+      },
     });
   };
 
@@ -477,7 +469,7 @@ const Profile = () => {
             </Box>
           </Box>
           {isOwnProfile ? (
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="outlined"
                 startIcon={<EditIcon />}
@@ -499,7 +491,7 @@ const Profile = () => {
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate("/settings")}
                 sx={{
                   borderRadius: "20px",
                   textTransform: "none",
@@ -636,7 +628,10 @@ const Profile = () => {
               onSubmit={(formData, { reset }) => {
                 createPost.mutate(formData, {
                   onSuccess: reset,
-                  onError: (error) => setError(error.response?.data?.message || "Failed to create post"),
+                  onError: (error) =>
+                    setError(
+                      error.response?.data?.message || "Failed to create post"
+                    ),
                 });
               }}
               loading={createPost.isLoading}
@@ -681,24 +676,26 @@ const Profile = () => {
                           openCommentBoxId === post._id ? null : post._id
                         )
                       }
-                      onCommentChange={e => handleCommentChange(post._id, e)}
+                      onCommentChange={(e) => handleCommentChange(post._id, e)}
                       onCommentSubmit={() => handleCommentSubmit(post._id)}
                       onEdit={() => {
                         setEditingPost(post);
                         setEditPostContent(post.content);
-                        openDialog('editPost');
+                        openDialog("editPost");
                       }}
                       onDelete={() => {
                         setEditingPost(post);
-                        openDialog('deletePost');
+                        openDialog("deletePost");
                       }}
                       onOpenCommentBox={() => setOpenCommentBoxId(post._id)}
                       onCloseCommentBox={() => setOpenCommentBoxId(null)}
                       addCommentLoading={addComment.isLoading}
                       setEditingComment={setEditingComment}
                       setEditCommentContent={setEditCommentContent}
-                      setEditCommentDialogOpen={() => openDialog('editComment')}
-                      setDeleteCommentDialogOpen={() => openDialog('deleteComment')}
+                      setEditCommentDialogOpen={() => openDialog("editComment")}
+                      setDeleteCommentDialogOpen={() =>
+                        openDialog("deleteComment")
+                      }
                     />
                   </Grid>
                 );
@@ -779,43 +776,59 @@ const Profile = () => {
         open={open.editPost}
         title="Edit Post"
         value={editPostContent}
-        onChange={e => setEditPostContent(e.target.value)}
-        onClose={() => closeDialog('editPost')}
-        onSave={() => updatePost.mutate({ postId: editingPost._id, content: editPostContent }, {
-          onSuccess: () => {
-            closeDialog('editPost');
-            setEditingPost(null);
-            setEditPostContent("");
-          }
-        })}
+        onChange={(e) => setEditPostContent(e.target.value)}
+        onClose={() => closeDialog("editPost")}
+        onSave={() =>
+          updatePost.mutate(
+            { postId: editingPost._id, content: editPostContent },
+            {
+              onSuccess: () => {
+                closeDialog("editPost");
+                setEditingPost(null);
+                setEditPostContent("");
+              },
+            }
+          )
+        }
         loading={updatePost.isLoading}
       />
       <EditDialog
         open={open.editComment}
         title="Edit Comment"
         value={editCommentContent}
-        onChange={e => setEditCommentContent(e.target.value)}
-        onClose={() => closeDialog('editComment')}
-        onSave={() => updateComment.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent }, {
-          onSuccess: () => {
-            closeDialog('editComment');
-            setEditingComment(null);
-            setEditCommentContent("");
-          }
-        })}
+        onChange={(e) => setEditCommentContent(e.target.value)}
+        onClose={() => closeDialog("editComment")}
+        onSave={() =>
+          updateComment.mutate(
+            {
+              postId: editingComment.postId,
+              commentId: editingComment._id,
+              content: editCommentContent,
+            },
+            {
+              onSuccess: () => {
+                closeDialog("editComment");
+                setEditingComment(null);
+                setEditCommentContent("");
+              },
+            }
+          )
+        }
         loading={updateComment.isLoading}
       />
       <ConfirmDialog
         open={open.deletePost}
         title="Delete Post"
         content="Are you sure you want to delete this post?"
-        onClose={() => closeDialog('deletePost')}
-        onConfirm={() => deletePost.mutate(editingPost._id, {
-          onSuccess: () => {
-            closeDialog('deletePost');
-            setEditingPost(null);
-          }
-        })}
+        onClose={() => closeDialog("deletePost")}
+        onConfirm={() =>
+          deletePost.mutate(editingPost._id, {
+            onSuccess: () => {
+              closeDialog("deletePost");
+              setEditingPost(null);
+            },
+          })
+        }
         loading={deletePost.isLoading}
         confirmText="Delete"
       />
@@ -823,13 +836,18 @@ const Profile = () => {
         open={open.deleteComment}
         title="Delete Comment"
         content="Are you sure you want to delete this comment?"
-        onClose={() => closeDialog('deleteComment')}
-        onConfirm={() => deleteComment.mutate({ postId: editingComment.postId, commentId: editingComment._id }, {
-          onSuccess: () => {
-            closeDialog('deleteComment');
-            setEditingComment(null);
-          }
-        })}
+        onClose={() => closeDialog("deleteComment")}
+        onConfirm={() =>
+          deleteComment.mutate(
+            { postId: editingComment.postId, commentId: editingComment._id },
+            {
+              onSuccess: () => {
+                closeDialog("deleteComment");
+                setEditingComment(null);
+              },
+            }
+          )
+        }
         loading={deleteComment.isLoading}
         confirmText="Delete"
       />

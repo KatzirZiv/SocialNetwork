@@ -8,9 +8,7 @@ import {
   Typography,
   Menu,
   Container,
-  Avatar,
   Button,
-  Tooltip,
   MenuItem,
   Drawer,
   List,
@@ -28,7 +26,6 @@ import {
   Chat as ChatIcon,
   Person as PersonIcon,
   Logout as LogoutIcon,
-  AccountCircle,
   Notifications as NotificationsIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
@@ -155,7 +152,7 @@ const Layout = ({ children }) => {
               letterSpacing: 1.5,
             }}
           >
-            SocialINg
+            PalZone
           </Typography>
 
           {user ? (
@@ -206,7 +203,9 @@ const Layout = ({ children }) => {
                       sx={{ alignItems: "flex-start" }}
                     >
                       <ListItemAvatar>
-                        <UserAvatar user={{ profilePicture: notification.avatar }} />
+                        <UserAvatar
+                          user={{ profilePicture: notification.avatar }}
+                        />
                       </ListItemAvatar>
                       <ListItemText
                         primary={notification.message}

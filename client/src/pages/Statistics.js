@@ -1,6 +1,6 @@
-import React from 'react';
-import { Box, Typography, Container, Paper } from '@mui/material';
-import StatisticsGraphs from '../components/StatisticsGraphs';
+import React from "react";
+import { Typography, Container, Paper } from "@mui/material";
+import StatisticsGraphs from "../components/StatisticsGraphs";
 
 export default function Statistics() {
   return (
@@ -13,4 +13,4 @@ export default function Statistics() {
       </Paper>
     </Container>
   );
-} 
+}

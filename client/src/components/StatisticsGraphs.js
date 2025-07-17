@@ -213,7 +213,15 @@ function TopUsersChart({ data, compact }) {
                   })`}
                 >
                   <foreignObject width="24" height="24">
-                    <UserAvatar user={user} size={20} sx={{ mr: 1, display: "inline-block", verticalAlign: "middle" }} />
+                    <UserAvatar
+                      user={user}
+                      size={20}
+                      sx={{
+                        mr: 1,
+                        display: "inline-block",
+                        verticalAlign: "middle",
+                      }}
+                    />
                   </foreignObject>
                   <text
                     x={compact ? 26 : 35}

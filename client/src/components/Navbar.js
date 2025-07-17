@@ -18,9 +18,7 @@ const Navbar = () => {
               fontWeight: 700,
               letterSpacing: 1.5,
             }}
-          >
-            PING PONG
-          </Typography>
+          ></Typography>
           {user && (
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <FriendRequests />

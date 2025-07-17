@@ -3,26 +3,20 @@ import {
   Card,
   CardContent,
   CardActions,
-  Avatar,
   Typography,
   Box,
   Divider,
   Button,
   Chip,
-  List,
-  ListItem,
   TextField,
-  IconButton,
 } from "@mui/material";
 import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Comment as CommentIcon,
   Share as ShareIcon,
-  Close as CloseIcon,
 } from "@mui/icons-material";
 import { Link } from "react-router-dom";
-import CommentMenu from "./CommentMenu";
 import PostMenu from "./PostMenu";
 import MediaPreview from "./MediaPreview";
 import UserAvatar from "./UserAvatar";
@@ -41,7 +35,6 @@ const PostCard = ({
   onCommentSubmit,
   onEdit,
   onDelete,
-  onOpenCommentBox,
   onCloseCommentBox,
   addCommentLoading,
   setEditingComment,
@@ -50,7 +43,15 @@ const PostCard = ({
   setDeleteCommentDialogOpen,
 }) => {
   return (
-    <Card sx={{ mb: 3, width: "100%", borderRadius: 3, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", margin: "0 0 24px 0" }}>
+    <Card
+      sx={{
+        mb: 3,
+        width: "100%",
+        borderRadius: 3,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+        margin: "0 0 24px 0",
+      }}
+    >
       <CardContent>
         {/* Post header: author, date, menu */}
         <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -65,12 +66,27 @@ const PostCard = ({
               variant="h6"
               component={Link}
               to={`/profile/${post.author?._id}`}
-              sx={{ textDecoration: "none", color: "inherit", fontWeight: 'bold', fontSize: '1rem' }}
+              sx={{
+                textDecoration: "none",
+                color: "inherit",
+                fontWeight: "bold",
+                fontSize: "1rem",
+              }}
             >
               {post.author?.username}
             </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
-              {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              sx={{ fontSize: "0.8rem" }}
+            >
+              {new Date(post.createdAt).toLocaleString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </Typography>
           </Box>
           <PostMenu
@@ -95,10 +111,7 @@ const PostCard = ({
           </Box>
         )}
         {/* Post content and media */}
-        <Typography
-          variant="body1"
-          sx={{ mt: 1, whiteSpace: "pre-wrap" }}
-        >
+        <Typography variant="body1" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>
           {post.content}
         </Typography>
         <MediaPreview
@@ -110,14 +123,22 @@ const PostCard = ({
       {/* Post actions: like, comment, share */}
       <CardActions sx={{ justifyContent: "space-around" }}>
         <Button
-          sx={{ color: isLikedByCurrentUser ? "#ec4899" : "inherit", fontWeight: 'bold' }}
-          startIcon={isLikedByCurrentUser ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+          sx={{
+            color: isLikedByCurrentUser ? "#ec4899" : "inherit",
+            fontWeight: "bold",
+          }}
+          startIcon={
+            isLikedByCurrentUser ? <FavoriteIcon /> : <FavoriteBorderIcon />
+          }
           onClick={onLike}
         >
           Like ({post.likes.length})
         </Button>
         <Button
-          sx={{ color: hasCommentedByCurrentUser ? "#ec4899" : "inherit", fontWeight: 'bold' }}
+          sx={{
+            color: hasCommentedByCurrentUser ? "#ec4899" : "inherit",
+            fontWeight: "bold",
+          }}
           startIcon={<CommentIcon />}
           onClick={onCommentClick}
         >
@@ -125,7 +146,7 @@ const PostCard = ({
         </Button>
         <Button
           startIcon={<ShareIcon />}
-          sx={{ color: "inherit", fontWeight: 'bold' }}
+          sx={{ color: "inherit", fontWeight: "bold" }}
         >
           Share
         </Button>
@@ -134,11 +155,8 @@ const PostCard = ({
       {openCommentBoxId === post._id && (
         <Box sx={{ p: 2 }}>
           <Divider sx={{ mb: 2 }} />
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <UserAvatar
-              user={user}
-              sx={{ mr: 2, width: 32, height: 32 }}
-            />
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <UserAvatar user={user} sx={{ mr: 2, width: 32, height: 32 }} />
             <TextField
               fullWidth
               variant="outlined"
@@ -148,7 +166,9 @@ const PostCard = ({
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: 20 } }}
             />
           </Box>
-          <Box sx={{ display: "flex", gap: 1, mt: 1, justifyContent: 'flex-end' }}>
+          <Box
+            sx={{ display: "flex", gap: 1, mt: 1, justifyContent: "flex-end" }}
+          >
             <Button
               variant="contained"
               size="small"
@@ -157,11 +177,7 @@ const PostCard = ({
             >
               Post Comment
             </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={onCloseCommentBox}
-            >
+            <Button variant="outlined" size="small" onClick={onCloseCommentBox}>
               Cancel
             </Button>
           </Box>
@@ -184,4 +200,4 @@ const PostCard = ({
   );
 };
 
-export default PostCard; 
+export default PostCard;

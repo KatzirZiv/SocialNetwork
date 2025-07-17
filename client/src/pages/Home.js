@@ -3,63 +3,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Container,
-  Box,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Card,
-  CardContent,
-  CardActions,
-  IconButton,
-  Avatar,
-  Divider,
-  CircularProgress,
-  Alert,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Grid,
-  Menu,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
-} from "@mui/material";
-import {
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Comment as CommentIcon,
-  Share as ShareIcon,
-  Image as ImageIcon,
-  Close as CloseIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  VideoLibrary as VideoLibraryIcon,
-} from "@mui/icons-material";
+import { Box, Paper, CircularProgress } from "@mui/material";
 import { posts, groups, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import FriendsList from "../components/FriendsList";
-import { Link } from "react-router-dom";
-import PostMenu from "../components/PostMenu";
-import CommentMenu from "../components/CommentMenu";
-import StatisticsGraphs from '../components/StatisticsGraphs';
-import { DatePicker } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import StatisticsGraphs from "../components/StatisticsGraphs";
 import PostCard from "../components/PostCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import EditDialog from "../components/EditDialog";
 import useCommentInput from "../hooks/useCommentInput";
 import usePostMutations from "../hooks/usePostMutations";
-import UserAvatar from "../components/UserAvatar";
 import PostForm from "../components/PostForm";
 import useDialogState from "../hooks/useDialogState";
 
@@ -83,10 +36,14 @@ const Home = () => {
   // State for controlling group selection dialog
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   // State for comment text per post (object: postId -> text)
-  const [commentTexts, handleCommentChange, setCommentTexts] = useCommentInput();
+  const [commentTexts, handleCommentChange, setCommentTexts] =
+    useCommentInput();
   // Dialog states for editing/deleting posts/comments
   const { open, openDialog, closeDialog } = useDialogState([
-    'editPost', 'editComment', 'deletePost', 'deleteComment'
+    "editPost",
+    "editComment",
+    "deletePost",
+    "deleteComment",
   ]);
   // State for currently editing post/comment
   const [editingPost, setEditingPost] = useState(null);
@@ -102,12 +59,12 @@ const Home = () => {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   // Filters for posts (group, author, media type, date range, sort)
   const [filters, setFilters] = useState({
-    group: '',
-    author: '',
-    mediaType: '',
-    startDate: '',
-    endDate: '',
-    sort: 'desc',
+    group: "",
+    author: "",
+    mediaType: "",
+    startDate: "",
+    endDate: "",
+    sort: "desc",
   });
   // Pending filters (used in dialog before applying)
   const [pendingFilters, setPendingFilters] = useState(filters);
@@ -115,20 +72,23 @@ const Home = () => {
   // Fetch posts with current filters using React Query
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ["posts", filters],
-    queryFn: () => posts.getAll({
-      group: filters.group,
-      author: filters.author,
-      mediaType: filters.mediaType,
-      startDate: filters.startDate ? new Date(filters.startDate).toISOString() : undefined,
-      endDate: filters.endDate
-        ? (() => {
-            const d = new Date(filters.endDate);
-            d.setHours(23, 59, 59, 999);
-            return d.toISOString();
-          })()
-        : undefined,
-      sort: filters.sort,
-    }),
+    queryFn: () =>
+      posts.getAll({
+        group: filters.group,
+        author: filters.author,
+        mediaType: filters.mediaType,
+        startDate: filters.startDate
+          ? new Date(filters.startDate).toISOString()
+          : undefined,
+        endDate: filters.endDate
+          ? (() => {
+              const d = new Date(filters.endDate);
+              d.setHours(23, 59, 59, 999);
+              return d.toISOString();
+            })()
+          : undefined,
+        sort: filters.sort,
+      }),
   });
 
   // Fetch all groups for group filter and post creation
@@ -172,19 +132,19 @@ const Home = () => {
     let file = null;
     if (imageFile) {
       file = imageFile;
-      mediaType = 'image';
+      mediaType = "image";
     } else if (videoFile) {
       file = videoFile;
-      mediaType = 'video';
+      mediaType = "video";
     }
     const formData = new FormData();
-    formData.append('content', newPost);
+    formData.append("content", newPost);
     if (file) {
-      formData.append('media', file);
-      formData.append('mediaType', mediaType);
+      formData.append("media", file);
+      formData.append("mediaType", mediaType);
     }
     if (selectedGroup) {
-      formData.append('group', selectedGroup);
+      formData.append("group", selectedGroup);
     }
     createPost.mutate(formData, {
       onSuccess: () => {
@@ -229,7 +189,7 @@ const Home = () => {
   };
 
   const handleVideoClick = (event) => {
-    document.getElementById('video-upload').click();
+    document.getElementById("video-upload").click();
   };
 
   const handleImageMenuClose = () => {
@@ -272,9 +232,12 @@ const Home = () => {
 
   const handleCommentSubmit = (postId) => {
     if (!commentTexts[postId]?.trim()) return;
-    addComment.mutate({ postId, content: commentTexts[postId] }, {
-      onSuccess: () => setCommentTexts("")
-    });
+    addComment.mutate(
+      { postId, content: commentTexts[postId] },
+      {
+        onSuccess: () => setCommentTexts(""),
+      }
+    );
   };
 
   useEffect(() => {
@@ -285,9 +248,9 @@ const Home = () => {
 
   useEffect(() => {
     if (imagePreview) {
-      const canvas = document.getElementById('image-preview-canvas');
+      const canvas = document.getElementById("image-preview-canvas");
       if (canvas) {
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         const img = new window.Image();
         img.onload = function () {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -318,14 +281,14 @@ const Home = () => {
   return (
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 0, md: '24px' },
-        alignItems: 'flex-start',
-        width: '100%',
+        display: "flex",
+        flexDirection: { xs: "column", md: "row" },
+        gap: { xs: 0, md: "24px" },
+        alignItems: "flex-start",
+        width: "100%",
         minWidth: 0,
-        minHeight: '100vh',
-        boxSizing: 'border-box',
+        minHeight: "100vh",
+        boxSizing: "border-box",
         px: 0,
         m: 0,
       }}
@@ -333,10 +296,10 @@ const Home = () => {
       {/* Left: Statistics panel (hidden on mobile) */}
       <Box
         sx={{
-          flex: '0 0 260px',
+          flex: "0 0 260px",
           maxWidth: 260,
-          width: { xs: '100%', md: 260 },
-          display: { xs: 'none', md: 'block' },
+          width: { xs: "100%", md: 260 },
+          display: { xs: "none", md: "block" },
           p: 0,
           m: 0,
         }}
@@ -350,55 +313,71 @@ const Home = () => {
         sx={{
           flex: 1,
           minWidth: 500,
-          maxWidth: { md: 'calc(100vw - 520px)' },
-          width: '100%',
+          maxWidth: { md: "calc(100vw - 520px)" },
+          width: "100%",
           margin: 0,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         }}
       >
         {/* Filter Button and Dialog */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
           {/* Opens the filter dialog for posts */}
           <button
             className="project-ui-btn contained"
             style={{
-              background: '#ffb6d5',
-              color: '#fff',
-              border: '1.5px solid #ffb6d5',
-              boxShadow: '0 1px 4px rgba(255,182,213,0.08)',
-              padding: '8px 28px',
-              borderRadius: '20px',
+              background: "#ffb6d5",
+              color: "#fff",
+              border: "1.5px solid #ffb6d5",
+              boxShadow: "0 1px 4px rgba(255,182,213,0.08)",
+              padding: "8px 28px",
+              borderRadius: "20px",
               fontWeight: 600,
-              fontSize: '1rem',
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-              transition: 'background 0.18s, color 0.18s, box-shadow 0.18s',
+              fontSize: "1rem",
+              fontFamily: "inherit",
+              cursor: "pointer",
+              transition: "background 0.18s, color 0.18s, box-shadow 0.18s",
             }}
-            onClick={() => { setPendingFilters(filters); setFilterDialogOpen(true); }}
+            onClick={() => {
+              setPendingFilters(filters);
+              setFilterDialogOpen(true);
+            }}
           >
-            <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: 0.5 }}>Filter</span>
+            <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: 0.5 }}>
+              Filter
+            </span>
           </button>
         </Box>
         {filterDialogOpen && (
           // Custom modal for filtering posts
           <div className="custom-modal-overlay">
             <div className="custom-modal project-ui-modal">
-              <h2 style={{
-                margin: 0,
-                marginBottom: 18,
-                fontWeight: 700,
-                fontSize: 24,
-                color: '#ff4fa3',
-                fontFamily: 'Inter, Roboto, Arial, sans-serif',
-                letterSpacing: 0.5
-              }}>Filter Posts</h2>
+              <h2
+                style={{
+                  margin: 0,
+                  marginBottom: 18,
+                  fontWeight: 700,
+                  fontSize: 24,
+                  color: "#ff4fa3",
+                  fontFamily: "Inter, Roboto, Arial, sans-serif",
+                  letterSpacing: 0.5,
+                }}
+              >
+                Filter Posts
+              </h2>
               {/* Filter fields for group, author, media type, date, sort */}
               <label>
                 Group
-                <select value={pendingFilters.group} onChange={e => setPendingFilters(f => ({ ...f, group: e.target.value }))}>
+                <select
+                  value={pendingFilters.group}
+                  onChange={(e) =>
+                    setPendingFilters((f) => ({ ...f, group: e.target.value }))
+                  }
+                >
                   <option value="">All</option>
-                  {groupsList.map(group => (
-                    <option key={group._id} value={group._id}>{group.name}</option>
+                  {groupsList.map((group) => (
+                    <option key={group._id} value={group._id}>
+                      {group.name}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -407,13 +386,23 @@ const Home = () => {
                 <input
                   type="text"
                   value={pendingFilters.author}
-                  onChange={e => setPendingFilters(f => ({ ...f, author: e.target.value }))}
+                  onChange={(e) =>
+                    setPendingFilters((f) => ({ ...f, author: e.target.value }))
+                  }
                   placeholder="Enter user ID or leave blank for all"
                 />
               </label>
               <label>
                 Media Type
-                <select value={pendingFilters.mediaType} onChange={e => setPendingFilters(f => ({ ...f, mediaType: e.target.value }))}>
+                <select
+                  value={pendingFilters.mediaType}
+                  onChange={(e) =>
+                    setPendingFilters((f) => ({
+                      ...f,
+                      mediaType: e.target.value,
+                    }))
+                  }
+                >
                   <option value="">All</option>
                   <option value="image">Image</option>
                   <option value="video">Video</option>
@@ -425,7 +414,12 @@ const Home = () => {
                 <input
                   type="date"
                   value={pendingFilters.startDate}
-                  onChange={e => setPendingFilters(f => ({ ...f, startDate: e.target.value }))}
+                  onChange={(e) =>
+                    setPendingFilters((f) => ({
+                      ...f,
+                      startDate: e.target.value,
+                    }))
+                  }
                 />
               </label>
               <label>
@@ -433,22 +427,64 @@ const Home = () => {
                 <input
                   type="date"
                   value={pendingFilters.endDate}
-                  onChange={e => setPendingFilters(f => ({ ...f, endDate: e.target.value }))}
+                  onChange={(e) =>
+                    setPendingFilters((f) => ({
+                      ...f,
+                      endDate: e.target.value,
+                    }))
+                  }
                 />
               </label>
               <label>
                 Sort
-                <select value={pendingFilters.sort} onChange={e => setPendingFilters(f => ({ ...f, sort: e.target.value }))}>
+                <select
+                  value={pendingFilters.sort}
+                  onChange={(e) =>
+                    setPendingFilters((f) => ({ ...f, sort: e.target.value }))
+                  }
+                >
                   <option value="desc">Newest First</option>
                   <option value="asc">Oldest First</option>
                 </select>
               </label>
-              <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
-                <button className="project-ui-btn outlined" onClick={() => setPendingFilters({ group: '', author: '', mediaType: '', startDate: '', endDate: '', sort: 'desc' })}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  marginTop: 24,
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  className="project-ui-btn outlined"
+                  onClick={() =>
+                    setPendingFilters({
+                      group: "",
+                      author: "",
+                      mediaType: "",
+                      startDate: "",
+                      endDate: "",
+                      sort: "desc",
+                    })
+                  }
+                >
                   Reset Filters
                 </button>
-                <button className="project-ui-btn outlined" onClick={() => setFilterDialogOpen(false)}>Cancel</button>
-                <button className="project-ui-btn contained" onClick={() => { setFilters(pendingFilters); setFilterDialogOpen(false); }}>Apply</button>
+                <button
+                  className="project-ui-btn outlined"
+                  onClick={() => setFilterDialogOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="project-ui-btn contained"
+                  onClick={() => {
+                    setFilters(pendingFilters);
+                    setFilterDialogOpen(false);
+                  }}
+                >
+                  Apply
+                </button>
               </div>
             </div>
             {/* Modal styles omitted for brevity */}
@@ -555,7 +591,10 @@ const Home = () => {
             onSubmit={(formData, { reset }) => {
               createPost.mutate(formData, {
                 onSuccess: reset,
-                onError: (error) => setError(error.response?.data?.message || "Failed to create post"),
+                onError: (error) =>
+                  setError(
+                    error.response?.data?.message || "Failed to create post"
+                  ),
               });
             }}
             loading={createPost.isLoading}
@@ -568,7 +607,7 @@ const Home = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <Box sx={{ width: '100%', maxWidth: 680, margin: '0 auto' }}>
+          <Box sx={{ width: "100%", maxWidth: 680, margin: "0 auto" }}>
             {postsList.map((post) => {
               const isLikedByCurrentUser = post.likes.some(
                 (like) => like === user?._id || like?._id === user?._id
@@ -589,24 +628,24 @@ const Home = () => {
                   openCommentBoxId={openCommentBoxId}
                   onLike={() => handleLike(post._id)}
                   onCommentClick={() => handleCommentClick(post._id)}
-                  onCommentChange={e => handleCommentChange(post._id, e)}
+                  onCommentChange={(e) => handleCommentChange(post._id, e)}
                   onCommentSubmit={() => handleCommentSubmit(post._id)}
                   onEdit={() => {
                     setEditingPost(post);
                     setEditPostContent(post.content);
-                    openDialog('editPost');
+                    openDialog("editPost");
                   }}
                   onDelete={() => {
                     setEditingPost(post);
-                    openDialog('deletePost');
+                    openDialog("deletePost");
                   }}
                   onOpenCommentBox={() => setOpenCommentBoxId(post._id)}
                   onCloseCommentBox={() => setOpenCommentBoxId(null)}
                   addCommentLoading={addComment.isLoading}
                   setEditingComment={setEditingComment}
                   setEditCommentContent={setEditCommentContent}
-                  setEditCommentDialogOpen={() => openDialog('editComment')}
-                  setDeleteCommentDialogOpen={() => openDialog('deleteComment')}
+                  setEditCommentDialogOpen={() => openDialog("editComment")}
+                  setDeleteCommentDialogOpen={() => openDialog("deleteComment")}
                 />
               );
             })}
@@ -617,43 +656,59 @@ const Home = () => {
           open={open.editPost}
           title="Edit Post"
           value={editPostContent}
-          onChange={e => setEditPostContent(e.target.value)}
-          onClose={() => closeDialog('editPost')}
-          onSave={() => updatePost.mutate({ postId: editingPost._id, content: editPostContent }, {
-            onSuccess: () => {
-              closeDialog('editPost');
-              setEditingPost(null);
-              setEditPostContent("");
-            }
-          })}
+          onChange={(e) => setEditPostContent(e.target.value)}
+          onClose={() => closeDialog("editPost")}
+          onSave={() =>
+            updatePost.mutate(
+              { postId: editingPost._id, content: editPostContent },
+              {
+                onSuccess: () => {
+                  closeDialog("editPost");
+                  setEditingPost(null);
+                  setEditPostContent("");
+                },
+              }
+            )
+          }
           loading={updatePost.isLoading}
         />
         <EditDialog
           open={open.editComment}
           title="Edit Comment"
           value={editCommentContent}
-          onChange={e => setEditCommentContent(e.target.value)}
-          onClose={() => closeDialog('editComment')}
-          onSave={() => updateComment.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent }, {
-            onSuccess: () => {
-              closeDialog('editComment');
-              setEditingComment(null);
-              setEditCommentContent("");
-            }
-          })}
+          onChange={(e) => setEditCommentContent(e.target.value)}
+          onClose={() => closeDialog("editComment")}
+          onSave={() =>
+            updateComment.mutate(
+              {
+                postId: editingComment.postId,
+                commentId: editingComment._id,
+                content: editCommentContent,
+              },
+              {
+                onSuccess: () => {
+                  closeDialog("editComment");
+                  setEditingComment(null);
+                  setEditCommentContent("");
+                },
+              }
+            )
+          }
           loading={updateComment.isLoading}
         />
         <ConfirmDialog
           open={open.deletePost}
           title="Delete Post"
           content="Are you sure you want to delete this post?"
-          onClose={() => closeDialog('deletePost')}
-          onConfirm={() => deletePost.mutate(editingPost._id, {
-            onSuccess: () => {
-              closeDialog('deletePost');
-              setEditingPost(null);
-            }
-          })}
+          onClose={() => closeDialog("deletePost")}
+          onConfirm={() =>
+            deletePost.mutate(editingPost._id, {
+              onSuccess: () => {
+                closeDialog("deletePost");
+                setEditingPost(null);
+              },
+            })
+          }
           loading={deletePost.isLoading}
           confirmText="Delete"
         />
@@ -661,13 +716,18 @@ const Home = () => {
           open={open.deleteComment}
           title="Delete Comment"
           content="Are you sure you want to delete this comment?"
-          onClose={() => closeDialog('deleteComment')}
-          onConfirm={() => deleteComment.mutate({ postId: editingComment.postId, commentId: editingComment._id }, {
-            onSuccess: () => {
-              closeDialog('deleteComment');
-              setEditingComment(null);
-            }
-          })}
+          onClose={() => closeDialog("deleteComment")}
+          onConfirm={() =>
+            deleteComment.mutate(
+              { postId: editingComment.postId, commentId: editingComment._id },
+              {
+                onSuccess: () => {
+                  closeDialog("deleteComment");
+                  setEditingComment(null);
+                },
+              }
+            )
+          }
           loading={deleteComment.isLoading}
           confirmText="Delete"
         />
@@ -675,10 +735,10 @@ const Home = () => {
       {/* Right: Friends list panel (hidden on mobile) */}
       <Box
         sx={{
-          flex: '0 0 260px',
+          flex: "0 0 260px",
           maxWidth: 260,
-          width: { xs: '100%', md: 260 },
-          display: { xs: 'none', md: 'block' },
+          width: { xs: "100%", md: 260 },
+          display: { xs: "none", md: "block" },
           p: 0,
           m: 0,
         }}

@@ -2,7 +2,7 @@
 // Handles group info, posts, members, join requests, admin actions, and more.
 
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Container,
@@ -11,53 +11,32 @@ import {
   Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
   IconButton,
-  Divider,
   CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
   Tabs,
   Tab,
   Chip,
   Alert,
-  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  ThumbUp as ThumbUpIcon,
-  ThumbUpOutlined as ThumbUpOutlinedIcon,
-  Comment as CommentIcon,
-  Share as ShareIcon,
   Person as PersonIcon,
   Group as GroupIcon,
   PersonAdd as PersonAddIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Close as CloseIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
 import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import PostMenu from "../components/PostMenu";
-import CommentMenu from "../components/CommentMenu";
 import PostCard from "../components/PostCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import EditDialog from "../components/EditDialog";
 import useCommentInput from "../hooks/useCommentInput";
 import usePostMutations from "../hooks/usePostMutations";
-import UserAvatar from "../components/UserAvatar";
 import PostForm from "../components/PostForm";
 import useDialogState from "../hooks/useDialogState";
 import UserList from "../components/UserList";
@@ -70,7 +49,10 @@ const Group = () => {
   const queryClient = useQueryClient();
   // Dialog and form state
   const { open, openDialog, closeDialog } = useDialogState([
-    'editPost', 'editComment', 'deletePost', 'deleteComment'
+    "editPost",
+    "editComment",
+    "deletePost",
+    "deleteComment",
   ]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [newPost, setNewPost] = useState("");
@@ -99,7 +81,8 @@ const Group = () => {
   const [optimisticLikes, setOptimisticLikes] = useState({});
   // State for open comment box and comment texts
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
-  const [commentTexts, handleCommentChange, setCommentTexts] = useCommentInput();
+  const [commentTexts, handleCommentChange, setCommentTexts] =
+    useCommentInput();
   // Video state for post
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
@@ -109,10 +92,11 @@ const Group = () => {
   const [selectedNewAdmin, setSelectedNewAdmin] = useState(null);
   // State for join requests (admin only)
   const [joinRequests, setJoinRequests] = useState([]);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Query for current user's join request to this group
   const { data: myJoinRequestData, refetch: refetchMyJoinRequest } = useQuery({
-    queryKey: ['myJoinRequest', id, currentUser?._id],
+    queryKey: ["myJoinRequest", id, currentUser?._id],
     queryFn: () => groups.getMyJoinRequest(id),
     enabled: !!currentUser?._id,
   });
@@ -156,7 +140,11 @@ const Group = () => {
     addComment,
     updateComment,
     deleteComment,
-  } = usePostMutations({ queryClient, user: currentUser, postsQueryKey: ["groupPosts", id] });
+  } = usePostMutations({
+    queryClient,
+    user: currentUser,
+    postsQueryKey: ["groupPosts", id],
+  });
 
   // --- Mutations for group actions ---
 
@@ -229,7 +217,8 @@ const Group = () => {
 
   // Transfer admin rights (admin)
   const transferAdminMutation = useMutation({
-    mutationFn: ({ groupId, newAdminId }) => groups.transferAdmin(groupId, newAdminId),
+    mutationFn: ({ groupId, newAdminId }) =>
+      groups.transferAdmin(groupId, newAdminId),
     onSuccess: () => {
       setTransferAdminDialogOpen(false);
       setSelectedNewAdmin(null);
@@ -275,19 +264,19 @@ const Group = () => {
     let file = null;
     if (imageFile) {
       file = imageFile;
-      mediaType = 'image';
+      mediaType = "image";
     } else if (videoFile) {
       file = videoFile;
-      mediaType = 'video';
+      mediaType = "video";
     }
     const formData = new FormData();
-    formData.append('content', newPost);
+    formData.append("content", newPost);
     if (file) {
-      formData.append('media', file);
-      formData.append('mediaType', mediaType);
+      formData.append("media", file);
+      formData.append("mediaType", mediaType);
     }
     if (id) {
-      formData.append('group', id);
+      formData.append("group", id);
     }
     createPost.mutate(formData, {
       onError: (error) => {
@@ -300,7 +289,7 @@ const Group = () => {
         setVideoFile(null);
         setVideoPreview(null);
         setError("");
-      }
+      },
     });
   };
 
@@ -348,8 +337,8 @@ const Group = () => {
       onSuccess: () => {
         setCoverImageFile(null);
         setCoverImagePreview(null);
-        const input = document.getElementById('group-cover-image-upload');
-        if (input) input.value = '';
+        const input = document.getElementById("group-cover-image-upload");
+        if (input) input.value = "";
         setTimeout(() => {
           window.location.href = window.location.pathname;
         }, 300);
@@ -359,9 +348,12 @@ const Group = () => {
 
   const handleCommentSubmit = (postId) => {
     if (!commentTexts[postId]?.trim()) return;
-    addComment.mutate({ postId, content: commentTexts[postId] }, {
-      onSuccess: () => setCommentTexts("")
-    });
+    addComment.mutate(
+      { postId, content: commentTexts[postId] },
+      {
+        onSuccess: () => setCommentTexts(""),
+      }
+    );
   };
 
   const handleVideoChange = (e) => {
@@ -415,16 +407,27 @@ const Group = () => {
   }, [open.editPost, editingPost]);
 
   useEffect(() => {
-    if (isAdmin && window.history.state && window.history.state.usr && window.history.state.usr.openTransferAdmin) {
+    if (
+      isAdmin &&
+      window.history.state &&
+      window.history.state.usr &&
+      window.history.state.usr.openTransferAdmin
+    ) {
       setTransferAdminDialogOpen(true);
       // Remove the flag so it doesn't reopen on refresh
-      window.history.replaceState({ ...window.history.state, usr: { ...window.history.state.usr, openTransferAdmin: false } }, '');
+      window.history.replaceState(
+        {
+          ...window.history.state,
+          usr: { ...window.history.state.usr, openTransferAdmin: false },
+        },
+        ""
+      );
     }
   }, [isAdmin]);
 
   useEffect(() => {
     if (isAdmin && group?._id) {
-      groups.getJoinRequests(group._id).then(res => {
+      groups.getJoinRequests(group._id).then((res) => {
         setJoinRequests(res.data.data || []);
       });
     }
@@ -433,32 +436,32 @@ const Group = () => {
   const handleJoinGroup = () => {
     joinGroupMutation.mutate(undefined, {
       onSuccess: (data) => {
-        if (group.privacy === 'private') {
+        if (group.privacy === "private") {
           refetchMyJoinRequest();
           queryClient.invalidateQueries(["group", id]);
         }
       },
       onError: (error) => {
-        if (error.message === 'Join request already sent') {
+        if (error.message === "Join request already sent") {
           refetchMyJoinRequest();
           queryClient.invalidateQueries(["group", id]);
         } else {
-          setError(error.message || 'Failed to join group');
+          setError(error.message || "Failed to join group");
         }
-      }
+      },
     });
   };
 
   const handleAcceptJoinRequest = (requestId) => {
     groups.acceptJoinRequest(group._id, requestId).then(() => {
-      setJoinRequests((prev) => prev.filter(r => r._id !== requestId));
+      setJoinRequests((prev) => prev.filter((r) => r._id !== requestId));
       queryClient.invalidateQueries(["group", id]);
     });
   };
 
   const handleDeclineJoinRequest = (requestId) => {
     groups.declineJoinRequest(group._id, requestId).then(() => {
-      setJoinRequests((prev) => prev.filter(r => r._id !== requestId));
+      setJoinRequests((prev) => prev.filter((r) => r._id !== requestId));
     });
   };
 
@@ -493,24 +496,42 @@ const Group = () => {
     );
   }
 
-  const canViewGroup = group && (group.privacy === 'public' || isMember || isAdmin);
+  const canViewGroup =
+    group && (group.privacy === "public" || isMember || isAdmin);
 
   if (!canViewGroup) {
     return (
-      <Container maxWidth="lg" sx={{ py: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
-          <Typography variant="h5" gutterBottom>This group is private</Typography>
+      <Container
+        maxWidth="lg"
+        sx={{
+          py: 8,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <Paper sx={{ p: 4, textAlign: "center", maxWidth: 400 }}>
+          <Typography variant="h5" gutterBottom>
+            This group is private
+          </Typography>
           <Typography variant="body1" color="text.secondary" gutterBottom>
             You must be a member to view the group details.
           </Typography>
-          {myJoinRequest?.status === 'pending' ? (
+          {myJoinRequest?.status === "pending" ? (
             <Button
               variant="outlined"
               color="error"
               onClick={() => cancelJoinRequestMutation.mutate()}
               disabled={cancelJoinRequestMutation.isLoading}
               startIcon={<CancelIcon />}
-              sx={{ mt: 2, backgroundColor: '#ffd1ea', color: '#ffb6d5', '&:hover': { backgroundColor: '#ffe6f2' } }}
+              sx={{
+                mt: 2,
+                backgroundColor: "#ffd1ea",
+                color: "#ffb6d5",
+                "&:hover": { backgroundColor: "#ffe6f2" },
+              }}
             >
               Cancel Request
             </Button>
@@ -518,7 +539,12 @@ const Group = () => {
             <Button
               variant="contained"
               disabled={joinGroupMutation.isLoading}
-              sx={{ mt: 2, backgroundColor: '#ffb6d5', color: '#fff', '&:hover': { backgroundColor: '#ffd1ea' } }}
+              sx={{
+                mt: 2,
+                backgroundColor: "#ffb6d5",
+                color: "#fff",
+                "&:hover": { backgroundColor: "#ffd1ea" },
+              }}
               onClick={handleJoinGroup}
             >
               Request to Join
@@ -663,39 +689,49 @@ const Group = () => {
               >
                 Leave Group
               </Button>
-            ) : (
-              group.privacy === 'private' ? (
-                myJoinRequest?.status === 'pending' ? (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => cancelJoinRequestMutation.mutate()}
-                    disabled={cancelJoinRequestMutation.isLoading}
-                    startIcon={<CancelIcon />}
-                    sx={{ backgroundColor: '#ffd1ea', color: '#ffb6d5', '&:hover': { backgroundColor: '#ffe6f2' } }}
-                  >
-                    Cancel Request
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    disabled={joinGroupMutation.isLoading}
-                    sx={{ backgroundColor: '#ffb6d5', color: '#fff', '&:hover': { backgroundColor: '#ffd1ea' } }}
-                    onClick={handleJoinGroup}
-                  >
-                    Request to Join
-                  </Button>
-                )
+            ) : group.privacy === "private" ? (
+              myJoinRequest?.status === "pending" ? (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => cancelJoinRequestMutation.mutate()}
+                  disabled={cancelJoinRequestMutation.isLoading}
+                  startIcon={<CancelIcon />}
+                  sx={{
+                    backgroundColor: "#ffd1ea",
+                    color: "#ffb6d5",
+                    "&:hover": { backgroundColor: "#ffe6f2" },
+                  }}
+                >
+                  Cancel Request
+                </Button>
               ) : (
                 <Button
                   variant="contained"
-                  onClick={handleJoinGroup}
                   disabled={joinGroupMutation.isLoading}
-                  sx={{ backgroundColor: '#ffb6d5', color: '#fff', '&:hover': { backgroundColor: '#ffd1ea' } }}
+                  sx={{
+                    backgroundColor: "#ffb6d5",
+                    color: "#fff",
+                    "&:hover": { backgroundColor: "#ffd1ea" },
+                  }}
+                  onClick={handleJoinGroup}
                 >
-                  Join Group
+                  Request to Join
                 </Button>
               )
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleJoinGroup}
+                disabled={joinGroupMutation.isLoading}
+                sx={{
+                  backgroundColor: "#ffb6d5",
+                  color: "#fff",
+                  "&:hover": { backgroundColor: "#ffd1ea" },
+                }}
+              >
+                Join Group
+              </Button>
             )}
           </Box>
         </Box>
@@ -735,7 +771,10 @@ const Group = () => {
               onSubmit={(formData, { reset }) => {
                 createPost.mutate(formData, {
                   onSuccess: reset,
-                  onError: (error) => setError(error.response?.data?.message || "Failed to create post"),
+                  onError: (error) =>
+                    setError(
+                      error.response?.data?.message || "Failed to create post"
+                    ),
                 });
               }}
               loading={createPost.isLoading}
@@ -783,24 +822,26 @@ const Group = () => {
                         openCommentBoxId === post._id ? null : post._id
                       )
                     }
-                    onCommentChange={e => handleCommentChange(post._id, e)}
+                    onCommentChange={(e) => handleCommentChange(post._id, e)}
                     onCommentSubmit={() => handleCommentSubmit(post._id)}
                     onEdit={() => {
                       setEditingPost(post);
                       setEditPostContent(post.content);
-                      openDialog('editPost');
+                      openDialog("editPost");
                     }}
                     onDelete={() => {
                       setEditingPost(post);
-                      openDialog('deletePost');
+                      openDialog("deletePost");
                     }}
                     onOpenCommentBox={() => setOpenCommentBoxId(post._id)}
                     onCloseCommentBox={() => setOpenCommentBoxId(null)}
                     addCommentLoading={addComment.isLoading}
                     setEditingComment={setEditingComment}
                     setEditCommentContent={setEditCommentContent}
-                    setEditCommentDialogOpen={() => openDialog('editComment')}
-                    setDeleteCommentDialogOpen={() => openDialog('deleteComment')}
+                    setEditCommentDialogOpen={() => openDialog("editComment")}
+                    setDeleteCommentDialogOpen={() =>
+                      openDialog("deleteComment")
+                    }
                   />
                 );
               })}
@@ -831,14 +872,39 @@ const Group = () => {
           ) : (
             <>
               {isAdmin && joinRequests.length > 0 && (
-                <Paper sx={{ p: 2, mb: 2, background: '#fff7fa' }}>
-                  <Typography variant="h6" sx={{ mb: 1 }}>Pending Join Requests</Typography>
+                <Paper sx={{ p: 2, mb: 2, background: "#fff7fa" }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    Pending Join Requests
+                  </Typography>
                   <UserList
-                    users={joinRequests.map(r => r.user)}
-                    getActions={user => (
+                    users={joinRequests.map((r) => r.user)}
+                    getActions={(user) => (
                       <>
-                        <Button size="small" color="primary" onClick={() => handleAcceptJoinRequest(joinRequests.find(r => r.user._id === user._id)._id)} sx={{ mr: 1 }}>Accept</Button>
-                        <Button size="small" color="error" onClick={() => handleDeclineJoinRequest(joinRequests.find(r => r.user._id === user._id)._id)}>Decline</Button>
+                        <Button
+                          size="small"
+                          color="primary"
+                          onClick={() =>
+                            handleAcceptJoinRequest(
+                              joinRequests.find((r) => r.user._id === user._id)
+                                ._id
+                            )
+                          }
+                          sx={{ mr: 1 }}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() =>
+                            handleDeclineJoinRequest(
+                              joinRequests.find((r) => r.user._id === user._id)
+                                ._id
+                            )
+                          }
+                        >
+                          Decline
+                        </Button>
                       </>
                     )}
                     avatarSize={40}
@@ -848,7 +914,7 @@ const Group = () => {
               )}
               <UserList
                 users={group.members}
-                getActions={member => (
+                getActions={(member) =>
                   member._id === group.admin?._id ? (
                     <Chip label="Admin" color="primary" size="small" />
                   ) : isAdmin ? (
@@ -863,8 +929,10 @@ const Group = () => {
                       Remove
                     </Button>
                   ) : null
-                )}
-                getSecondary={member => member._id === group.admin?._id ? "Group Admin" : "Member"}
+                }
+                getSecondary={(member) =>
+                  member._id === group.admin?._id ? "Group Admin" : "Member"
+                }
                 avatarSize={40}
                 divider={true}
               />
@@ -873,7 +941,10 @@ const Group = () => {
         </Paper>
       )}
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Delete Group</DialogTitle>
         <DialogContent>
           <Typography>
@@ -904,7 +975,7 @@ const Group = () => {
             users={filteredFriends}
             loading={friendsLoading}
             emptyText="No friends found"
-            onUserClick={friend => setSelectedFriend(friend)}
+            onUserClick={(friend) => setSelectedFriend(friend)}
             selectedUserId={selectedFriend?._id}
             getSecondary={null}
             getActions={null}
@@ -929,43 +1000,59 @@ const Group = () => {
         open={open.editPost}
         title="Edit Post"
         value={editPostContent}
-        onChange={e => setEditPostContent(e.target.value)}
-        onClose={() => closeDialog('editPost')}
-        onSave={() => updatePost.mutate({ postId: editingPost._id, content: editPostContent }, {
-          onSuccess: () => {
-            closeDialog('editPost');
-            setEditingPost(null);
-            setEditPostContent("");
-          }
-        })}
+        onChange={(e) => setEditPostContent(e.target.value)}
+        onClose={() => closeDialog("editPost")}
+        onSave={() =>
+          updatePost.mutate(
+            { postId: editingPost._id, content: editPostContent },
+            {
+              onSuccess: () => {
+                closeDialog("editPost");
+                setEditingPost(null);
+                setEditPostContent("");
+              },
+            }
+          )
+        }
         loading={updatePost.isLoading}
       />
       <EditDialog
         open={open.editComment}
         title="Edit Comment"
         value={editCommentContent}
-        onChange={e => setEditCommentContent(e.target.value)}
-        onClose={() => closeDialog('editComment')}
-        onSave={() => updateComment.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent }, {
-          onSuccess: () => {
-            closeDialog('editComment');
-            setEditingComment(null);
-            setEditCommentContent("");
-          }
-        })}
+        onChange={(e) => setEditCommentContent(e.target.value)}
+        onClose={() => closeDialog("editComment")}
+        onSave={() =>
+          updateComment.mutate(
+            {
+              postId: editingComment.postId,
+              commentId: editingComment._id,
+              content: editCommentContent,
+            },
+            {
+              onSuccess: () => {
+                closeDialog("editComment");
+                setEditingComment(null);
+                setEditCommentContent("");
+              },
+            }
+          )
+        }
         loading={updateComment.isLoading}
       />
       <ConfirmDialog
         open={open.deletePost}
         title="Delete Post"
         content="Are you sure you want to delete this post?"
-        onClose={() => closeDialog('deletePost')}
-        onConfirm={() => deletePost.mutate(editingPost._id, {
-          onSuccess: () => {
-            closeDialog('deletePost');
-            setEditingPost(null);
-          }
-        })}
+        onClose={() => closeDialog("deletePost")}
+        onConfirm={() =>
+          deletePost.mutate(editingPost._id, {
+            onSuccess: () => {
+              closeDialog("deletePost");
+              setEditingPost(null);
+            },
+          })
+        }
         loading={deletePost.isLoading}
         confirmText="Delete"
       />
@@ -973,13 +1060,18 @@ const Group = () => {
         open={open.deleteComment}
         title="Delete Comment"
         content="Are you sure you want to delete this comment?"
-        onClose={() => closeDialog('deleteComment')}
-        onConfirm={() => deleteComment.mutate({ postId: editingComment.postId, commentId: editingComment._id }, {
-          onSuccess: () => {
-            closeDialog('deleteComment');
-            setEditingComment(null);
-          }
-        })}
+        onClose={() => closeDialog("deleteComment")}
+        onConfirm={() =>
+          deleteComment.mutate(
+            { postId: editingComment.postId, commentId: editingComment._id },
+            {
+              onSuccess: () => {
+                closeDialog("deleteComment");
+                setEditingComment(null);
+              },
+            }
+          )
+        }
         loading={deleteComment.isLoading}
         confirmText="Delete"
       />
@@ -1024,7 +1116,7 @@ const Group = () => {
             users={filteredFriends}
             loading={friendsLoading}
             emptyText="No friends found"
-            onUserClick={friend => setUserToAdd(friend)}
+            onUserClick={(friend) => setUserToAdd(friend)}
             selectedUserId={userToAdd?._id}
             getSecondary={null}
             getActions={null}
@@ -1053,11 +1145,12 @@ const Group = () => {
         <DialogTitle>Transfer Admin Before Leaving</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
-            You must transfer admin rights to another member before leaving the group. Please select the new admin:
+            You must transfer admin rights to another member before leaving the
+            group. Please select the new admin:
           </Typography>
           <UserList
-            users={group.members?.filter(m => m._id !== group.admin?._id)}
-            onUserClick={member => setSelectedNewAdmin(member._id)}
+            users={group.members?.filter((m) => m._id !== group.admin?._id)}
+            onUserClick={(member) => setSelectedNewAdmin(member._id)}
             selectedUserId={selectedNewAdmin}
             getSecondary={null}
             getActions={null}
@@ -1066,9 +1159,16 @@ const Group = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setTransferAdminDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setTransferAdminDialogOpen(false)}>
+            Cancel
+          </Button>
           <Button
-            onClick={() => transferAdminMutation.mutate({ groupId: id, newAdminId: selectedNewAdmin })}
+            onClick={() =>
+              transferAdminMutation.mutate({
+                groupId: id,
+                newAdminId: selectedNewAdmin,
+              })
+            }
             variant="contained"
             color="primary"
             disabled={!selectedNewAdmin || transferAdminMutation.isLoading}
