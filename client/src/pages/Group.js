@@ -1,3 +1,6 @@
+// Group.js - Group page for viewing, managing, and interacting with a group
+// Handles group info, posts, members, join requests, admin actions, and more.
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -51,10 +54,12 @@ import PostMenu from "../components/PostMenu";
 import CommentMenu from "../components/CommentMenu";
 
 const Group = () => {
+  // Get group ID from URL params
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+  // Dialog and form state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [newPost, setNewPost] = useState("");
@@ -66,6 +71,7 @@ const Group = () => {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  // Media state for post/cover
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [editPostDialogOpen, setEditPostDialogOpen] = useState(false);
@@ -82,15 +88,22 @@ const Group = () => {
   const [userToAdd, setUserToAdd] = useState(null);
   const [coverImageFile, setCoverImageFile] = useState(null);
   const [coverImagePreview, setCoverImagePreview] = useState(null);
+  // Optimistic UI state for likes
   const [optimisticLikes, setOptimisticLikes] = useState({});
+  // State for open comment box and comment texts
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
   const [commentTexts, setCommentTexts] = useState({});
+  // Video state for post
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
+  // Error and admin transfer state
   const [error, setError] = useState("");
   const [transferAdminDialogOpen, setTransferAdminDialogOpen] = useState(false);
   const [selectedNewAdmin, setSelectedNewAdmin] = useState(null);
+  // State for join requests (admin only)
   const [joinRequests, setJoinRequests] = useState([]);
+
+  // Query for current user's join request to this group
   const { data: myJoinRequestData, refetch: refetchMyJoinRequest } = useQuery({
     queryKey: ['myJoinRequest', id, currentUser?._id],
     queryFn: () => groups.getMyJoinRequest(id),
@@ -98,6 +111,7 @@ const Group = () => {
   });
   const myJoinRequest = myJoinRequestData?.data?.data;
 
+  // Query for group details
   const {
     data: groupData,
     isLoading: groupLoading,
@@ -107,6 +121,7 @@ const Group = () => {
     queryFn: () => groups.getById(id),
   });
 
+  // Query for posts in this group
   const {
     data: groupPosts,
     isLoading: postsLoading,
@@ -118,12 +133,16 @@ const Group = () => {
     },
   });
 
+  // Query for current user's friends (for inviting to group)
   const { data: friendsData, isLoading: friendsLoading } = useQuery({
     queryKey: ["friends", currentUser?._id],
     queryFn: () => users.getFriends(currentUser?._id),
     enabled: !!currentUser?._id,
   });
 
+  // --- Mutations for group actions ---
+
+  // Join group (send join request or join directly)
   const joinGroupMutation = useMutation({
     mutationFn: () => groups.join(id),
     onSuccess: () => {
@@ -135,6 +154,7 @@ const Group = () => {
     },
   });
 
+  // Leave group
   const leaveGroupMutation = useMutation({
     mutationFn: () => groups.leave(id),
     onSuccess: () => {
@@ -142,6 +162,7 @@ const Group = () => {
     },
   });
 
+  // Update group info (admin)
   const updateGroupMutation = useMutation({
     mutationFn: (data) => groups.update(id, data),
     onSuccess: () => {
@@ -150,6 +171,7 @@ const Group = () => {
     },
   });
 
+  // Delete group (admin)
   const deleteGroupMutation = useMutation({
     mutationFn: () => groups.delete(id),
     onSuccess: () => {
@@ -157,6 +179,7 @@ const Group = () => {
     },
   });
 
+  // Create a new post in the group
   const createPostMutation = useMutation({
     mutationFn: (formData) => posts.create(formData),
     onSuccess: () => {
@@ -167,6 +190,7 @@ const Group = () => {
     },
   });
 
+  // Like a post in the group
   const likePostMutation = useMutation({
     mutationFn: (postId) => posts.like(postId),
     onSuccess: () => {
@@ -178,6 +202,7 @@ const Group = () => {
     },
   });
 
+  // Invite a friend to the group (admin)
   const inviteMemberMutation = useMutation({
     mutationFn: ({ groupId, userId }) => groups.invite(groupId, userId),
     onSuccess: () => {
@@ -187,6 +212,7 @@ const Group = () => {
     },
   });
 
+  // Update a post in the group
   const updatePostMutation = useMutation({
     mutationFn: ({ postId, content }) => posts.update(postId, { content }),
     onSuccess: () => {
@@ -197,6 +223,7 @@ const Group = () => {
     },
   });
 
+  // Delete a post in the group
   const deletePostMutation = useMutation({
     mutationFn: (postId) => posts.delete(postId),
     onSuccess: () => {
@@ -206,6 +233,7 @@ const Group = () => {
     },
   });
 
+  // Update a comment in the group
   const updateCommentMutation = useMutation({
     mutationFn: ({ postId, commentId, content }) =>
       posts.updateComment(postId, commentId, content),
@@ -217,6 +245,7 @@ const Group = () => {
     },
   });
 
+  // Delete a comment in the group
   const deleteCommentMutation = useMutation({
     mutationFn: ({ postId, commentId }) =>
       posts.deleteComment(postId, commentId),
@@ -227,6 +256,7 @@ const Group = () => {
     },
   });
 
+  // Remove a member from the group (admin)
   const removeMemberMutation = useMutation({
     mutationFn: ({ groupId, userId }) => groups.removeMember(groupId, userId),
     onSuccess: () => {
@@ -236,6 +266,7 @@ const Group = () => {
     },
   });
 
+  // Add a member to the group (admin)
   const addMemberMutation = useMutation({
     mutationFn: ({ groupId, userId }) => groups.addMember(groupId, userId),
     onSuccess: () => {
@@ -245,6 +276,7 @@ const Group = () => {
     },
   });
 
+  // Add a comment to a post
   const addCommentMutation = useMutation({
     mutationFn: ({ postId, content }) => posts.addComment(postId, content),
     onSuccess: (data, variables) => {
@@ -253,6 +285,7 @@ const Group = () => {
     },
   });
 
+  // Transfer admin rights (admin)
   const transferAdminMutation = useMutation({
     mutationFn: ({ groupId, newAdminId }) => groups.transferAdmin(groupId, newAdminId),
     onSuccess: () => {
@@ -262,6 +295,7 @@ const Group = () => {
     },
   });
 
+  // Cancel a join request (member)
   const cancelJoinRequestMutation = useMutation({
     mutationFn: () => groups.cancelJoinRequest(id),
     onSuccess: () => {

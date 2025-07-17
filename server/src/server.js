@@ -1,3 +1,6 @@
+// server.js - Main backend server entry point
+// Sets up Express, Socket.io, database, routes, and error handling
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -11,15 +14,16 @@ const errorHandler = require("./middleware/error");
 const fs = require("fs");
 const socketio = require("socket.io");
 
-// Load environment variables
+// Load environment variables from .env
 dotenv.config();
 
-// Force development mode
+// Force development mode (for debugging)
 process.env.NODE_ENV = "development";
 
-// Create Express app
+// Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
+// Set up Socket.io for real-time communication
 const io = socketio(server, {
   cors: {
     origin: "http://localhost:3000",
@@ -27,7 +31,7 @@ const io = socketio(server, {
   },
 });
 
-// Middleware
+// Middleware for CORS, JSON parsing, and URL encoding
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -40,7 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 // Add logging middleware for development
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
-  // Add request body logging
+  // Log request details for debugging
   app.use((req, res, next) => {
     console.log("=== Request Logging ===");
     console.log("Method:", req.method);
@@ -53,7 +57,6 @@ if (process.env.NODE_ENV === "development") {
     console.log("Route:", req.route);
     console.log("Params:", req.params);
     console.log("Query:", req.query);
-
     // Log the full request for debugging
     console.log("Full request:", {
       method: req.method,
@@ -68,12 +71,11 @@ if (process.env.NODE_ENV === "development") {
       params: req.params,
       query: req.query,
     });
-
     next();
   });
 }
 
-// Add error logging middleware
+// Error logging middleware
 app.use((err, req, res, next) => {
   console.error("=== Error Logging ===");
   console.error("Error:", err);
@@ -88,7 +90,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Set static folder for uploads
+// Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -97,7 +99,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
-// Add a default profile picture route
+// Route for default profile picture
 app.get("/default-profile.png", (req, res) => {
   console.log("=== Default Profile Picture Request ===");
   const filePath = path.join(__dirname, "../uploads/default-profile.png");
@@ -111,21 +113,22 @@ app.get("/default-profile.png", (req, res) => {
   res.sendFile(filePath);
 });
 
-// Database connection
+// Connect to MongoDB database
 connectDB();
 
-// Routes (to be implemented)
+// Mount API routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/groups", require("./routes/groups"));
 app.use("/api/posts", require("./routes/posts"));
 app.use("/api/messages", require("./routes/messages"));
 
-// User to socket mapping
+// User to socket mapping for online status
 const userSocketMap = {};
 
+// Socket.io event handlers for real-time features
 io.on("connection", (socket) => {
-  // Join event: user comes online
+  // User joins (comes online)
   socket.on("join", (userId) => {
     userSocketMap[userId] = socket.id;
     // Broadcast online users
@@ -133,7 +136,7 @@ io.on("connection", (socket) => {
     socket.join(userId); // join a room for direct messaging
   });
 
-  // Leave event: user goes offline
+  // User leaves (goes offline)
   socket.on("leave", (userId) => {
     delete userSocketMap[userId];
     io.emit("user:online", Object.keys(userSocketMap));
@@ -152,7 +155,7 @@ io.on("connection", (socket) => {
     io.emit("user:online", Object.keys(userSocketMap));
   });
 
-  // Private message event (optional, if you want to handle socket-only messages)
+  // Private message event (optional, for direct socket messages)
   socket.on("private_message", ({ to, message, from }) => {
     if (userSocketMap[to]) {
       io.to(userSocketMap[to]).emit("message:new", { from, message });
@@ -163,10 +166,10 @@ io.on("connection", (socket) => {
 // Make io accessible in controllers
 app.set("io", io);
 
-// Error handling middleware
+// Global error handling middleware
 app.use(errorHandler);
 
-// Start server
+// Start the server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(

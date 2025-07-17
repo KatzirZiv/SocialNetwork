@@ -1,3 +1,6 @@
+// auth.js - Authentication controller for user registration, login, and profile
+// Handles user registration, login, and fetching current user info
+
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
 
@@ -5,6 +8,7 @@ const { validationResult } = require('express-validator');
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = async (req, res) => {
+  // Validate request body
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -20,7 +24,7 @@ exports.register = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    // Check if user already exists
+    // Check if user already exists (by email or username)
     let user = await User.findOne({ $or: [{ email }, { username }] });
 
     if (user) {
@@ -30,14 +34,14 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create new user
     user = await User.create({
       username,
       email,
       password
     });
 
-    // Create token
+    // Generate JWT token for authentication
     const token = user.getSignedJwtToken();
 
     res.status(201).json({
@@ -59,7 +63,11 @@ exports.register = async (req, res) => {
   }
 };
 
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
 exports.login = async (req, res) => {
+  // Validate request body
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -68,7 +76,7 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Check if user exists
+    // Find user by email
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
@@ -88,7 +96,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Create token
+    // Generate JWT token
     const token = user.getSignedJwtToken();
 
     res.status(200).json({
@@ -115,6 +123,7 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
+    // Find user by ID from JWT
     const user = await User.findById(req.user.id);
 
     res.status(200).json({

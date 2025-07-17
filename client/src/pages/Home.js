@@ -1,3 +1,6 @@
+// Home.js - Main feed and post interaction page for the social network
+// This component handles displaying posts, creating new posts, filtering, liking, commenting, and more.
+
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -55,27 +58,42 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 const Home = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // State for new post content
   const [newPost, setNewPost] = useState("");
+  // State for image file and preview for new post
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  // State for video file and preview for new post
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
+  // State for menu anchor (for image/video menu popups)
   const [anchorEl, setAnchorEl] = useState(null);
+  // State for selected group when posting to a group
   const [selectedGroup, setSelectedGroup] = useState("");
+  // State for error messages
   const [error, setError] = useState("");
+  // State for controlling group selection dialog
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  // State for comment text per post (object: postId -> text)
   const [commentTexts, setCommentTexts] = useState({});
+  // Dialog states for editing/deleting posts/comments
   const [editPostDialogOpen, setEditPostDialogOpen] = useState(false);
   const [editCommentDialogOpen, setEditCommentDialogOpen] = useState(false);
   const [deletePostDialogOpen, setDeletePostDialogOpen] = useState(false);
   const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false);
+  // State for currently editing post/comment
   const [editingPost, setEditingPost] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
+  // State for content being edited (post/comment)
   const [editPostContent, setEditPostContent] = useState("");
   const [editCommentContent, setEditCommentContent] = useState("");
+  // Optimistic UI state for likes (postId -> likes array)
   const [optimisticLikes, setOptimisticLikes] = useState({});
+  // State to control which comment box is open (postId)
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
+  // State for filter dialog and filter values
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  // Filters for posts (group, author, media type, date range, sort)
   const [filters, setFilters] = useState({
     group: '',
     author: '',
@@ -84,8 +102,10 @@ const Home = () => {
     endDate: '',
     sort: 'desc',
   });
+  // Pending filters (used in dialog before applying)
   const [pendingFilters, setPendingFilters] = useState(filters);
 
+  // Fetch posts with current filters using React Query
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ["posts", filters],
     queryFn: () => posts.getAll({
@@ -104,12 +124,13 @@ const Home = () => {
     }),
   });
 
+  // Fetch all groups for group filter and post creation
   const { data: groupsData, isLoading: groupsLoading } = useQuery({
     queryKey: ["groups"],
     queryFn: () => groups.getAll(),
   });
 
-
+  // Mutation for creating a new post (text, image, video, group)
   const createPostMutation = useMutation({
     mutationFn: (formData) => posts.create(formData),
     onSuccess: () => {
@@ -127,10 +148,12 @@ const Home = () => {
     },
   });
 
+  // Mutation for liking/unliking a post with optimistic UI update
   const likePostMutation = useMutation({
     mutationFn: ({ postId, isLiked }) =>
       isLiked ? posts.unlike(postId) : posts.like(postId),
     onMutate: async ({ postId, isLiked }) => {
+      // Optimistically update likes before server response
       await queryClient.cancelQueries({ queryKey: ["posts"] });
       const previousPosts = queryClient.getQueryData(["posts"]);
 
@@ -156,15 +179,18 @@ const Home = () => {
       return { previousPosts };
     },
     onError: (err, variables, context) => {
+      // Rollback optimistic update if error
       if (context?.previousPosts) {
         queryClient.setQueryData(["posts"], context.previousPosts);
       }
     },
     onSettled: () => {
+      // Refetch posts after mutation
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
   });
 
+  // Mutation for adding a comment to a post
   const addCommentMutation = useMutation({
     mutationFn: ({ postId, content }) => posts.addComment(postId, content),
     onSuccess: (response, variables) => {
@@ -173,6 +199,7 @@ const Home = () => {
     },
   });
 
+  // Mutation for updating a post's content
   const updatePostMutation = useMutation({
     mutationFn: ({ postId, content }) => posts.update(postId, { content }),
     onSuccess: () => {
@@ -183,6 +210,7 @@ const Home = () => {
     },
   });
 
+  // Mutation for deleting a post
   const deletePostMutation = useMutation({
     mutationFn: (postId) => posts.delete(postId),
     onSuccess: () => {
@@ -192,6 +220,7 @@ const Home = () => {
     },
   });
 
+  // Mutation for updating a comment's content
   const updateCommentMutation = useMutation({
     mutationFn: ({ postId, commentId, content }) =>
       posts.updateComment(postId, commentId, content),
@@ -203,6 +232,7 @@ const Home = () => {
     },
   });
 
+  // Mutation for deleting a comment
   const deleteCommentMutation = useMutation({
     mutationFn: ({ postId, commentId }) =>
       posts.deleteComment(postId, commentId),
@@ -331,6 +361,7 @@ const Home = () => {
   }, [imagePreview]);
 
   if (postsLoading || groupsLoading) {
+    // Show loading spinner while posts or groups are loading
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
         <CircularProgress />
@@ -338,6 +369,7 @@ const Home = () => {
     );
   }
 
+  // Prepare lists for groups and posts
   const groupsList = Array.isArray(groupsData?.data?.data)
     ? groupsData.data.data
     : [];
@@ -360,7 +392,7 @@ const Home = () => {
         m: 0,
       }}
     >
-      {/* Left: Statistics */}
+      {/* Left: Statistics panel (hidden on mobile) */}
       <Box
         sx={{
           flex: '0 0 260px',
@@ -375,7 +407,7 @@ const Home = () => {
           <StatisticsGraphs />
         </Box>
       </Box>
-      {/* Center: Posts */}
+      {/* Center: Main feed and post creation */}
       <Box
         sx={{
           flex: 1,
@@ -386,8 +418,9 @@ const Home = () => {
           boxSizing: 'border-box',
         }}
       >
-        {/* Filter Button */}
+        {/* Filter Button and Dialog */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          {/* Opens the filter dialog for posts */}
           <button
             className="project-ui-btn contained"
             style={{
@@ -409,6 +442,7 @@ const Home = () => {
           </button>
         </Box>
         {filterDialogOpen && (
+          // Custom modal for filtering posts
           <div className="custom-modal-overlay">
             <div className="custom-modal project-ui-modal">
               <h2 style={{
@@ -420,6 +454,7 @@ const Home = () => {
                 fontFamily: 'Inter, Roboto, Arial, sans-serif',
                 letterSpacing: 0.5
               }}>Filter Posts</h2>
+              {/* Filter fields for group, author, media type, date, sort */}
               <label>
                 Group
                 <select value={pendingFilters.group} onChange={e => setPendingFilters(f => ({ ...f, group: e.target.value }))}>
@@ -478,6 +513,7 @@ const Home = () => {
                 <button className="project-ui-btn contained" onClick={() => { setFilters(pendingFilters); setFilterDialogOpen(false); }}>Apply</button>
               </div>
             </div>
+            {/* Modal styles omitted for brevity */}
             <style>{`
               .custom-modal-overlay {
                 position: fixed;
@@ -576,11 +612,13 @@ const Home = () => {
           </div>
         )}
         {user && (
+          // Post creation form (only visible if logged in)
           <Paper
             elevation={2}
             sx={{ p: 3, mb: 4, borderRadius: 3, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
           >
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              {/* User avatar and post input */}
               <Avatar
                 src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
                 sx={{ mr: 2, width: 48, height: 48 }}
@@ -604,6 +642,7 @@ const Home = () => {
                 }}
               />
             </Box>
+            {/* Image/video preview for new post */}
             {(imagePreview || videoPreview) && (
               <Box sx={{ position: "relative", mb: 2 }}>
                 <IconButton
@@ -631,8 +670,10 @@ const Home = () => {
               </Box>
             )}
             <Divider sx={{ my: 2 }} />
+            {/* Post creation actions: add image/video, submit post */}
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Box>
+                {/* Hidden file inputs for image/video upload */}
                 <input
                   type="file"
                   id="image-upload"
@@ -647,6 +688,7 @@ const Home = () => {
                   onChange={handleVideoChange}
                   style={{ display: "none" }}
                 />
+                {/* Image and video upload buttons */}
                 <IconButton onClick={() => document.getElementById('image-upload').click()} size="small">
                   <ImageIcon fontSize="small" /> Photo
                 </IconButton>
@@ -669,6 +711,7 @@ const Home = () => {
             </Box>
           </Paper>
         )}
+        {/* Main feed: list of posts */}
         {postsLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
             <CircularProgress />
@@ -676,6 +719,7 @@ const Home = () => {
         ) : (
           <Box sx={{ width: '100%', maxWidth: 680, margin: '0 auto' }}>
             {postsList.map((post) => {
+              // Determine if current user liked or commented on this post
               const isLikedByCurrentUser = post.likes.some(
                 (like) => like === user?._id || like?._id === user?._id
               );
@@ -696,6 +740,7 @@ const Home = () => {
                   }}
                 >
                   <CardContent>
+                    {/* Post header: author, date, menu */}
                     <Box
                       sx={{ display: "flex", alignItems: "center", mb: 2 }}
                     >
@@ -720,6 +765,7 @@ const Home = () => {
                           {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </Typography>
                       </Box>
+                      {/* Post menu: edit/delete if owner */}
                       <PostMenu
                         post={post}
                         user={user}
@@ -734,6 +780,7 @@ const Home = () => {
                         }}
                       />
                     </Box>
+                    {/* Group chip if post is from a group */}
                     {post.group && (
                       <Box sx={{ mb: 1 }}>
                         <Chip
@@ -747,6 +794,7 @@ const Home = () => {
                         />
                       </Box>
                     )}
+                    {/* Post content and media */}
                     <Typography
                       variant="body1"
                       sx={{ mt: 1, whiteSpace: "pre-wrap" }}
@@ -772,6 +820,7 @@ const Home = () => {
                     ) : null}
                   </CardContent>
                   <Divider />
+                  {/* Post actions: like, comment, share */}
                   <CardActions sx={{ justifyContent: "space-around" }}>
                     <Button
                       sx={{
@@ -808,6 +857,7 @@ const Home = () => {
                       Share
                     </Button>
                   </CardActions>
+                  {/* Comment box for adding a new comment */}
                   {openCommentBoxId === post._id && (
                     <Box sx={{ p: 2 }}>
                       <Divider sx={{ mb: 2 }} />
@@ -854,6 +904,7 @@ const Home = () => {
                       </Box>
                     </Box>
                   )}
+                  {/* List of comments for the post */}
                   {post.comments.length > 0 && (
                     <Box sx={{ p: 2 }}>
                       <List>
@@ -892,6 +943,7 @@ const Home = () => {
                                 >
                                   {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </Typography>
+                                {/* Comment menu for edit/delete if owner */}
                                 {comment.author?._id === user?._id && (
                                   <CommentMenu
                                     comment={comment}
@@ -928,6 +980,7 @@ const Home = () => {
             })}
           </Box>
         )}
+        {/* Dialogs for editing/deleting posts and comments */}
         <Dialog
           open={deletePostDialogOpen}
           onClose={() => setDeletePostDialogOpen(false)}
@@ -1047,7 +1100,7 @@ const Home = () => {
           </DialogActions>
         </Dialog>
       </Box>
-      {/* Right: Friends */}
+      {/* Right: Friends list panel (hidden on mobile) */}
       <Box
         sx={{
           flex: '0 0 260px',

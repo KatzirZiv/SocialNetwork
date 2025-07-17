@@ -1,3 +1,6 @@
+// Chat.js - Direct messaging page for chatting with friends
+// Handles conversations, real-time messages, online status, and message sending
+
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,31 +29,40 @@ import { useLocation, Link } from "react-router-dom";
 const Chat = () => {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+  // State for selected user to chat with
   const [selectedUser, setSelectedUser] = useState(null);
+  // State for message input
   const [message, setMessage] = useState("");
+  // Ref for scrolling to latest message
   const messagesEndRef = useRef(null);
+  // State for online users (from socket)
   const [onlineUsers, setOnlineUsers] = useState([]);
   const location = useLocation();
 
+  // Initialize socket connection for real-time updates
   const socket = useSocket(currentUser?._id);
 
+  // Fetch all conversations
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => messages.getAll(),
   });
 
+  // Fetch messages for selected conversation
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", selectedUser?._id],
     queryFn: () => messages.getConversation(selectedUser?._id),
     enabled: !!selectedUser,
   });
 
+  // Fetch current user's friends (for conversation list)
   const { data: friendsData, isLoading: friendsLoading } = useQuery({
     queryKey: ["friends", currentUser?._id],
     queryFn: () => users.getFriends(currentUser._id),
     enabled: !!currentUser?._id,
   });
 
+  // Mutation for sending a message
   const sendMessageMutation = useMutation({
     mutationFn: (data) => messages.send(data),
     onSuccess: () => {
@@ -58,6 +70,7 @@ const Chat = () => {
     },
   });
 
+  // Listen for online users and new messages via socket
   useEffect(() => {
     if (socket) {
       socket.on("user:online", (users) => {
@@ -81,11 +94,12 @@ const Chat = () => {
     }
   }, [socket, selectedUser?._id]);
 
+  // Scroll to latest message when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messagesData]);
 
-  // Pre-select user if navigated from profile
+  // Pre-select user if navigated from profile page
   useEffect(() => {
     if (
       location.state &&
@@ -103,6 +117,7 @@ const Chat = () => {
     // eslint-disable-next-line
   }, [location.state, friendsData]);
 
+  // Handle sending a message
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.trim() && selectedUser) {
@@ -121,6 +136,7 @@ const Chat = () => {
       : `http://localhost:5000/uploads/default-profile.png`;
 
   if (conversationsLoading) {
+    // Show loading spinner while conversations are loading
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
         <CircularProgress />
