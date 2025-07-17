@@ -22,6 +22,8 @@ import {
 } from '@mui/icons-material';
 import { users } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import UserAvatar from "./UserAvatar";
+import UserList from "./UserList";
 
 const FriendRequests = () => {
   const { user } = useAuth();
@@ -75,8 +77,30 @@ const FriendRequests = () => {
   const pendingRequests = requestsData?.data?.data?.filter(
     (request) => request.status === 'pending'
   ) || [];
-  console.log('requestsData', requestsData);
-  console.log('pendingRequests', pendingRequests);
+
+  const getIncomingActions = (request) => (
+    <Box>
+      <Button
+        size="small"
+        color="primary"
+        onClick={() => handleAccept(request._id)}
+        startIcon={<CheckIcon />}
+        sx={{ mr: 1 }}
+      >
+        Accept
+      </Button>
+      <Button
+        size="small"
+        color="error"
+        onClick={() => handleReject(request._id)}
+        startIcon={<CloseIcon />}
+      >
+        Reject
+      </Button>
+    </Box>
+  );
+
+  const getOutgoingSecondary = () => "Request sent";
 
   return (
     <>
@@ -110,72 +134,28 @@ const FriendRequests = () => {
           <Box sx={{ p: 2 }}>
             <Typography variant="h6">Incoming Friend Requests</Typography>
             <Divider sx={{ my: 1 }} />
-            {pendingRequests.length === 0 ? (
-              <MenuItem>
-                <ListItemText primary="No pending requests" />
-              </MenuItem>
-            ) : (
-              pendingRequests.map((request) => (
-                <MenuItem key={request._id} sx={{ py: 1 }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      src={request.sender?.profilePicture ? `http://localhost:5000${request.sender.profilePicture}` : undefined}
-                      alt={request.sender?.username}
-                    />
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={request.sender?.username}
-                    secondary="Wants to be your friend"
-                  />
-                  <Box>
-                    <Button
-                      size="small"
-                      color="primary"
-                      onClick={() => handleAccept(request._id)}
-                      startIcon={<CheckIcon />}
-                      sx={{ mr: 1 }}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleReject(request._id)}
-                      startIcon={<CloseIcon />}
-                    >
-                      Reject
-                    </Button>
-                  </Box>
-                </MenuItem>
-              ))
-            )}
+            <UserList
+              users={pendingRequests.map(r => ({ ...r.sender, _requestId: r._id }))}
+              emptyText="No pending requests"
+              getActions={user => getIncomingActions({ _id: user._requestId, sender: user })}
+              getSecondary={() => "Wants to be your friend"}
+              avatarSize={40}
+              divider={true}
+            />
           </Box>
         )}
         {tab === 1 && (
           <Box sx={{ p: 2 }}>
             <Typography variant="h6">Outgoing Friend Requests</Typography>
             <Divider sx={{ my: 1 }} />
-            {(!outgoingRequestsData?.data || outgoingRequestsData.data.length === 0) ? (
-              <MenuItem>
-                <ListItemText primary="No outgoing requests" />
-              </MenuItem>
-            ) : (
-              outgoingRequestsData.data.map((request) => (
-                <MenuItem key={request._id} sx={{ py: 1 }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      src={request.to.profilePicture ? `http://localhost:5000${request.to.profilePicture}` : undefined}
-                      alt={request.to.username}
-                    />
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={request.to.username}
-                    secondary="Request sent"
-                  />
-                  {/* Optionally add a cancel button here */}
-                </MenuItem>
-              ))
-            )}
+            <UserList
+              users={(!outgoingRequestsData?.data ? [] : outgoingRequestsData.data.map(r => r.to))}
+              emptyText="No outgoing requests"
+              getActions={null}
+              getSecondary={getOutgoingSecondary}
+              avatarSize={40}
+              divider={true}
+            />
           </Box>
         )}
       </Menu>

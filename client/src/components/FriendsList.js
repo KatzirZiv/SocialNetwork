@@ -25,6 +25,8 @@ import { users } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AddFriend from './AddFriend';
+import UserAvatar from "./UserAvatar";
+import UserList from "./UserList";
 
 const FriendsList = ({ compact }) => {
   const { user } = useAuth();
@@ -76,6 +78,43 @@ const FriendsList = ({ compact }) => {
     f.username.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Action renderers for UserList
+  const getActions = (friend) => {
+    if (compact) {
+      return (
+        <IconButton
+          edge="end"
+          aria-label="message"
+          onClick={() => handleMessage(friend)}
+          sx={{ ml: 0.5 }}
+        >
+          <MessageIcon fontSize="small" />
+        </IconButton>
+      );
+    }
+    return (
+      <Box>
+        <IconButton
+          edge="end"
+          aria-label="message"
+          onClick={() => handleMessage(friend)}
+          sx={{ mr: 1 }}
+        >
+          <MessageIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          edge="end"
+          aria-label="remove"
+          onClick={() => handleRemoveFriend(friend._id)}
+        >
+          <PersonRemoveIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    );
+  };
+
+  const getSecondary = (friend) => (compact ? null : 'Friend');
+
   return (
     <>
       {!compact && <AddFriend />}
@@ -106,79 +145,18 @@ const FriendsList = ({ compact }) => {
             />
           </Box>
         )}
-        <List sx={{ p: 0 }}>
-          {filteredFriends.map((friend) => (
-            <React.Fragment key={friend._id}>
-              <ListItem
-                disableGutters
-                sx={{
-                  py: compact ? 0.5 : 1.5,
-                  px: 0,
-                  minHeight: 48,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-                secondaryAction={
-                  !compact && (
-                    <Box>
-                      <IconButton
-                        edge="end"
-                        aria-label="message"
-                        onClick={() => handleMessage(friend)}
-                        sx={{ mr: 1 }}
-                      >
-                        <MessageIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        edge="end"
-                        aria-label="remove"
-                        onClick={() => handleRemoveFriend(friend._id)}
-                      >
-                        <PersonRemoveIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )
-                }
-              >
-                <ListItemAvatar sx={{ minWidth: 0, mr: 1 }}>
-                  <Avatar
-                    src={friend.profilePicture ? `http://localhost:5000${friend.profilePicture}` : 'http://localhost:5000/uploads/default-profile.png'}
-                    alt={friend.username}
-                    sx={{ width: compact ? 32 : 40, height: compact ? 32 : 40, fontSize: compact ? 16 : 20, cursor: 'pointer' }}
-                    onClick={() => navigate(`/profile/${friend._id}`)}
-                  >
-                    <PersonIcon fontSize="small" />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={<Typography sx={{ fontWeight: 500, fontSize: compact ? 15 : 16, color: '#222', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }} onClick={() => navigate(`/profile/${friend._id}`)}>{friend.username}</Typography>}
-                  secondary={compact ? null : 'Friend'}
-                  sx={{ m: 0 }}
-                />
-                {compact && (
-                  <IconButton
-                    edge="end"
-                    aria-label="message"
-                    onClick={() => handleMessage(friend)}
-                    sx={{ ml: 0.5 }}
-                  >
-                    <MessageIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </ListItem>
-              {compact ? <Divider sx={{ ml: 5, mr: 0 }} /> : <Divider variant="inset" component="li" />}
-            </React.Fragment>
-          ))}
-          {filteredFriends.length === 0 && (
-            <ListItem>
-              <ListItemText
-                primary={<Typography sx={{ fontSize: compact ? 14 : 16, color: '#888' }}>No friends found</Typography>}
-                secondary={compact ? null : 'Add friends to see them here'}
-              />
-            </ListItem>
-          )}
-        </List>
+        <UserList
+          users={filteredFriends}
+          loading={isLoading}
+          emptyText={compact ? "No friends found" : "Add friends to see them here"}
+          getActions={getActions}
+          getSecondary={getSecondary}
+          avatarSize={compact ? 32 : 40}
+          divider={true}
+          onUserClick={friend => navigate(`/profile/${friend._id}`)}
+          selectedUserId={null}
+          showSearch={false}
+        />
         {compact && (
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <button

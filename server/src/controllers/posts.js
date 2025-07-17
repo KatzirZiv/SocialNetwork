@@ -1,3 +1,6 @@
+// posts.js - Controller for post CRUD, file uploads, and post-related actions
+// Handles creating, reading, updating, and deleting posts, as well as file uploads and filters
+
 const Post = require("../models/Post");
 const Group = require("../models/Group");
 const { validationResult } = require("express-validator");
@@ -8,7 +11,7 @@ const multer = require("multer");
 const path = require("path");
 const mongoose = require("mongoose");
 
-// Configure multer for file uploads
+// Configure multer for file uploads (images/videos)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, "../../uploads/"));
@@ -40,9 +43,11 @@ const upload = multer({
 // @route   POST /api/posts
 // @access  Private
 exports.createPost = asyncHandler(async (req, res, next) => {
+  // Log request for debugging
   console.log("--- Create Post Request ---");
   console.log("User:", req.user);
   console.log("Body before upload:", req.body);
+  // Handle file upload (image/video)
   upload(req, res, async function (err) {
     if (err) {
       console.error("Multer error:", err);
@@ -54,6 +59,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       console.log("File uploaded:", req.file);
     }
 
+    // Set author to current user
     req.body.author = req.user.id;
     if (req.file) {
       req.body.media = `/uploads/${req.file.filename}`;
@@ -69,10 +75,11 @@ exports.createPost = asyncHandler(async (req, res, next) => {
     console.log("Group field received:", req.body.group);
 
     try {
+      // Create the post in the database
       const post = await Post.create(req.body);
       await post.populate("author", "username profilePicture");
       await post.populate("group", "name");
-      // הוספת הפוסט למערך הפוסטים של הקבוצה (אם קיים group)
+      // If post belongs to a group, add post to group's posts array
       if (post.group) {
         try {
           await Group.findByIdAndUpdate(post.group, { $addToSet: { posts: post._id } });
@@ -97,9 +104,10 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getPosts = asyncHandler(async (req, res, next) => {
   try {
+    // Find current user
     const user = await User.findById(req.user.id);
 
-    // Build query
+    // Build query for posts
     let query = {};
 
     // If group is specified, only get posts from that group
@@ -148,7 +156,7 @@ exports.getPosts = asyncHandler(async (req, res, next) => {
     if (req.query.sort === 'asc') sortOrder = 'createdAt';
     if (req.query.sort === 'desc') sortOrder = '-createdAt';
 
-    // Get posts
+    // Get posts from database
     const posts = await Post.find(query)
       .populate("author", "username profilePicture")
       .populate("group", "name")
@@ -177,6 +185,7 @@ exports.getPosts = asyncHandler(async (req, res, next) => {
 // @access  Private
 exports.getPost = async (req, res) => {
   try {
+    // Find post by ID
     const post = await Post.findById(req.params.id)
       .populate("author", "username profilePicture")
       .populate("group", "name")

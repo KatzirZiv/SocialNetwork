@@ -1,3 +1,6 @@
+// Chat.js - Direct messaging page for chatting with friends
+// Handles conversations, real-time messages, online status, and message sending
+
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,35 +25,46 @@ import { messages, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import useSocket from "../hooks/useSocket";
 import { useLocation, Link } from "react-router-dom";
+import UserAvatar from "../components/UserAvatar";
+import UserList from "../components/UserList";
 
 const Chat = () => {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+  // State for selected user to chat with
   const [selectedUser, setSelectedUser] = useState(null);
+  // State for message input
   const [message, setMessage] = useState("");
+  // Ref for scrolling to latest message
   const messagesEndRef = useRef(null);
+  // State for online users (from socket)
   const [onlineUsers, setOnlineUsers] = useState([]);
   const location = useLocation();
 
+  // Initialize socket connection for real-time updates
   const socket = useSocket(currentUser?._id);
 
+  // Fetch all conversations
   const { data: conversations, isLoading: conversationsLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: () => messages.getAll(),
   });
 
+  // Fetch messages for selected conversation
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", selectedUser?._id],
     queryFn: () => messages.getConversation(selectedUser?._id),
     enabled: !!selectedUser,
   });
 
+  // Fetch current user's friends (for conversation list)
   const { data: friendsData, isLoading: friendsLoading } = useQuery({
     queryKey: ["friends", currentUser?._id],
     queryFn: () => users.getFriends(currentUser._id),
     enabled: !!currentUser?._id,
   });
 
+  // Mutation for sending a message
   const sendMessageMutation = useMutation({
     mutationFn: (data) => messages.send(data),
     onSuccess: () => {
@@ -58,6 +72,7 @@ const Chat = () => {
     },
   });
 
+  // Listen for online users and new messages via socket
   useEffect(() => {
     if (socket) {
       socket.on("user:online", (users) => {
@@ -81,11 +96,12 @@ const Chat = () => {
     }
   }, [socket, selectedUser?._id]);
 
+  // Scroll to latest message when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messagesData]);
 
-  // Pre-select user if navigated from profile
+  // Pre-select user if navigated from profile page
   useEffect(() => {
     if (
       location.state &&
@@ -103,6 +119,7 @@ const Chat = () => {
     // eslint-disable-next-line
   }, [location.state, friendsData]);
 
+  // Handle sending a message
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.trim() && selectedUser) {
@@ -120,7 +137,40 @@ const Chat = () => {
       ? `http://localhost:5000${user.profilePicture}`
       : `http://localhost:5000/uploads/default-profile.png`;
 
+  // Helper to get secondary text for conversation preview
+  const getSecondary = (friend) => {
+    const conversationList = Array.isArray(conversations?.data?.data)
+      ? conversations.data.data
+      : [];
+    const conversation = conversationList.find((c) =>
+      c.participants.some(
+        (p) => p._id?.toString() === friend._id?.toString()
+      )
+    );
+    return !conversation
+      ? "No messages yet. Say hello!"
+      : conversation.lastMessage?.content || "Conversation started";
+  };
+
+  // Online indicator as an action
+  const getActions = (friend) =>
+    onlineUsers.includes(friend._id) ? (
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          width: 12,
+          height: 12,
+          bgcolor: "success.main",
+          borderRadius: "50%",
+          border: "2px solid white",
+        }}
+      />
+    ) : null;
+
   if (conversationsLoading) {
+    // Show loading spinner while conversations are loading
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
         <CircularProgress />
@@ -133,62 +183,19 @@ const Chat = () => {
       <Box sx={{ display: "flex", height: "100%", gap: 2 }}>
         {/* Conversations List */}
         <Paper sx={{ width: 300, overflow: "auto" }}>
-          <List>
-            {(Array.isArray(friendsData?.data?.data)
-              ? friendsData.data.data
-              : []
-            ).map((friend) => {
-              // Find conversation with this friend
-              const conversationList = Array.isArray(conversations?.data?.data)
-                ? conversations.data.data
-                : [];
-              const conversation = conversationList.find((c) =>
-                c.participants.some(
-                  (p) => p._id?.toString() === friend._id?.toString()
-                )
-              );
-
-              return (
-                <ListItem key={friend._id}>
-                  <ListItemButton
-                    selected={selectedUser?._id === friend._id}
-                    onClick={() => setSelectedUser(friend)}
-                  >
-                    <ListItemAvatar>
-                      <Box sx={{ position: "relative" }}>
-                        <Avatar
-                          src={getProfilePicture(friend)}
-                          alt={friend.username}
-                        />
-                        {onlineUsers.includes(friend._id) && (
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              bottom: 0,
-                              right: 0,
-                              width: 12,
-                              height: 12,
-                              bgcolor: "success.main",
-                              borderRadius: "50%",
-                              border: "2px solid white",
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={friend.username}
-                      secondary={
-                        !conversation
-                          ? "No messages yet. Say hello!"
-                          : conversation.lastMessage?.content || "Conversation started"
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
-          </List>
+          <UserList
+            users={Array.isArray(friendsData?.data?.data) ? friendsData.data.data : []}
+            loading={friendsLoading}
+            emptyText="No friends found"
+            getActions={getActions}
+            getSecondary={getSecondary}
+            avatarSize={40}
+            divider={true}
+            onUserClick={setSelectedUser}
+            selectedUserId={selectedUser?._id}
+            showSearch={false}
+            sx={{ position: 'relative' }}
+          />
         </Paper>
 
         {/* Chat Area */}
@@ -205,9 +212,9 @@ const Chat = () => {
                   alignItems: "center",
                 }}
               >
-                <Avatar
-                  src={getProfilePicture(selectedUser)}
-                  alt={selectedUser.username}
+                <UserAvatar
+                  user={selectedUser}
+                  size={40}
                   sx={{ mr: 2 }}
                 />
                 <Box>
@@ -264,10 +271,10 @@ const Chat = () => {
                         }}
                       >
                         {!isOwn && (
-                          <Avatar
-                            src={getProfilePicture(selectedUser)}
-                            alt={selectedUser.username}
-                            sx={{ mr: 1, width: 32, height: 32 }}
+                          <UserAvatar
+                            user={selectedUser}
+                            size={32}
+                            sx={{ mr: 1 }}
                           />
                         )}
                         <Paper
@@ -298,10 +305,10 @@ const Chat = () => {
                           </Typography>
                         </Paper>
                         {isOwn && (
-                          <Avatar
-                            src={getProfilePicture(currentUser)}
-                            alt={currentUser.username}
-                            sx={{ ml: 1, width: 32, height: 32 }}
+                          <UserAvatar
+                            user={currentUser}
+                            size={32}
+                            sx={{ ml: 1 }}
                           />
                         )}
                       </Box>

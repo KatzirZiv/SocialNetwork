@@ -1,3 +1,6 @@
+// Groups.js - Main page for browsing, searching, joining, and creating groups
+// Handles group list, search, join/leave, and group creation dialog
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,18 +35,23 @@ import {
 } from "@mui/icons-material";
 import { groups } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import UserAvatar from "../components/UserAvatar";
 
 const Groups = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  // State for search input
   const [searchQuery, setSearchQuery] = useState("");
+  // State for create group dialog
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  // State for new group form
   const [newGroup, setNewGroup] = useState({
     name: "",
     description: "",
     privacy: "public"
   });
+  // State for error message in create group dialog
   const [createError, setCreateError] = useState("");
 
   // Fetch all groups
@@ -94,7 +102,7 @@ const Groups = () => {
     });
   }
 
-  // Update cancelJoinRequestMutation and joinGroupMutation to invalidate per-group join request state
+  // Cancel join request mutation (per group)
   const cancelJoinRequestMutation = useMutation({
     mutationFn: (groupId) => groups.cancelJoinRequest(groupId),
     onSuccess: (data, groupId) => {
@@ -105,6 +113,7 @@ const Groups = () => {
       queryClient.invalidateQueries(['myJoinRequest', groupId, user?._id]);
     },
   });
+  // Join group mutation (per group)
   const joinGroupMutation = useMutation({
     mutationFn: (groupId) => groups.join(groupId),
     onSuccess: (data, groupId) => {
@@ -116,6 +125,7 @@ const Groups = () => {
     },
   });
 
+  // Handle create group form submit
   const handleCreateGroup = (e) => {
     e.preventDefault();
     if (newGroup.name.trim()) {
@@ -123,6 +133,7 @@ const Groups = () => {
     }
   };
 
+  // Handle join group button click
   const handleJoinGroup = (groupId, privacy) => {
     joinGroupMutation.mutate(groupId, {
       onSuccess: (data) => {
@@ -138,10 +149,12 @@ const Groups = () => {
     });
   };
 
+  // Handle leave group button click
   const handleLeaveGroup = (groupId) => {
     leaveGroupMutation.mutate(groupId);
   };
 
+  // Filter groups by search query
   const filteredGroups =
     groupsData?.data?.data?.filter(
       (group) =>
@@ -149,6 +162,7 @@ const Groups = () => {
         group.description?.toLowerCase().includes(searchQuery.toLowerCase())
     ) || [];
 
+  // Card component for each group, with join/leave/request/cancel logic
   function GroupCardWithJoinState({
     group,
     user,
@@ -188,11 +202,7 @@ const Groups = () => {
                 <Chip
                   key={member._id}
                   avatar={
-                    <Avatar
-                      src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
-                      alt={member.username}
-                      onError={e => { e.target.src = "/default-profile.png"; }}
-                    />
+                    <UserAvatar user={member} size={24} />
                   }
                   label={member.username}
                   size="small"
@@ -215,6 +225,7 @@ const Groups = () => {
             >
               View Details
             </Button>
+            {/* Show leave/join/request/cancel buttons based on membership and privacy */}
             {group.members?.some((member) => member._id === user?._id) ? (
               <Button
                 size="small"
