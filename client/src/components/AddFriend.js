@@ -26,6 +26,8 @@ import {
 import { users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import useNotifications from "../hooks/useNotifications";
+import UserAvatar from "./UserAvatar";
+import UserList from "./UserList";
 
 const AddFriend = () => {
   const { user } = useAuth();
@@ -252,15 +254,40 @@ const AddFriend = () => {
         await acceptRequestMutation.mutateAsync(
           searchUser.incomingFriendRequestId
         );
-      } catch (error) {
-        // error handled by mutation
-      }
-    } else {
+      } catch (error) {}
+    } else if (!searchUser.isFriend) {
       try {
         await sendRequestMutation.mutateAsync(searchUser._id);
-      } catch (error) {
-        // error handled by mutation
-      }
+      } catch (error) {}
+    }
+  };
+
+  const getActions = (searchUser) => {
+    const buttonState = getFriendButtonState(searchUser);
+    if (buttonState.type === "icon") {
+      return (
+        <IconButton
+          disabled={buttonState.disabled}
+          color={buttonState.color}
+          sx={buttonState.sx}
+        >
+          {buttonState.icon}
+        </IconButton>
+      );
+    } else {
+      return (
+        <Button
+          variant={buttonState.variant}
+          size="small"
+          startIcon={buttonState.icon}
+          onClick={() => handleSendOrCancelRequest(searchUser)}
+          disabled={buttonState.disabled}
+          color={buttonState.color}
+          sx={buttonState.sx}
+        >
+          {buttonState.text}
+        </Button>
+      );
     }
   };
 
@@ -311,103 +338,17 @@ const AddFriend = () => {
           <CircularProgress />
         </Box>
       ) : searchQuery.length >= 3 ? (
-        <List
-          sx={{
-            bgcolor: "background.paper",
-            borderRadius: "12px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-          }}
-        >
-          {usersList.map((searchUser) => {
-            const buttonState = getFriendButtonState(searchUser);
-            return (
-              <ListItem
-                key={searchUser._id}
-                sx={{
-                  borderBottom: "1px solid",
-                  borderColor: "divider",
-                  "&:last-child": { borderBottom: "none" },
-                  py: 1.5,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-                secondaryAction={
-                  buttonState.type === "icon" ? (
-                    <IconButton
-                      onClick={() => handleSendOrCancelRequest(searchUser)}
-                      disabled={buttonState.disabled}
-                      color={buttonState.color}
-                      sx={buttonState.sx}
-                    >
-                      {buttonState.icon}
-                    </IconButton>
-                  ) : (
-                    <Button
-                      variant={buttonState.variant}
-                      size="small"
-                      startIcon={buttonState.icon}
-                      onClick={() => handleSendOrCancelRequest(searchUser)}
-                      disabled={buttonState.disabled}
-                      color={buttonState.color}
-                      sx={buttonState.sx}
-                    >
-                      {buttonState.text}
-                    </Button>
-                  )
-                }
-              >
-                <ListItemAvatar>
-                  <Avatar
-                    src={
-                      searchUser.profilePicture
-                        ? `http://localhost:5000${searchUser.profilePicture}`
-                        : undefined
-                    }
-                    alt={searchUser.username}
-                    onClick={() => handleProfileClick(searchUser._id)}
-                    sx={{
-                      cursor: "pointer",
-                      width: 48,
-                      height: 48,
-                      border: "2px solid",
-                      borderColor: "divider",
-                      "&:hover": { borderColor: "primary.main" },
-                      marginRight: "16px",
-                    }}
-                  >
-                    <PersonIcon />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Typography
-                      component="span"
-                      onClick={() => handleProfileClick(searchUser._id)}
-                      sx={{
-                        cursor: "pointer",
-                        fontWeight: 500,
-                        "&:hover": {
-                          color: "primary.main",
-                          textDecoration: "underline",
-                        },
-                        flexGrow: 1,
-                        flexShrink: 1,
-                        minWidth: 0,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        marginRight: "8px",
-                      }}
-                    >
-                      {searchUser.username}
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            );
-          })}
-        </List>
+        <UserList
+          users={usersList}
+          loading={loading}
+          emptyText="No users found"
+          getActions={getActions}
+          avatarSize={48}
+          divider={true}
+          onUserClick={user => handleProfileClick(user._id)}
+          selectedUserId={null}
+          showSearch={false}
+        />
       ) : null}
     </Box>
   );

@@ -35,6 +35,7 @@ import {
 } from "@mui/icons-material";
 import { groups } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import UserAvatar from "../components/UserAvatar";
 
 const Groups = () => {
   const navigate = useNavigate();
@@ -201,11 +202,7 @@ const Groups = () => {
                 <Chip
                   key={member._id}
                   avatar={
-                    <Avatar
-                      src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
-                      alt={member.username}
-                      onError={e => { e.target.src = "/default-profile.png"; }}
-                    />
+                    <UserAvatar user={member} size={24} />
                   }
                   label={member.username}
                   size="small"

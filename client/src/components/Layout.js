@@ -39,6 +39,7 @@ import { users } from "../services/api";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import BarChartIcon from "@mui/icons-material/BarChart";
+import UserAvatar from "./UserAvatar";
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -154,7 +155,7 @@ const Layout = ({ children }) => {
               letterSpacing: 1.5,
             }}
           >
-            PING PONG
+            SocialINg
           </Typography>
 
           {user ? (
@@ -205,7 +206,7 @@ const Layout = ({ children }) => {
                       sx={{ alignItems: "flex-start" }}
                     >
                       <ListItemAvatar>
-                        <Avatar src={notification.avatar} />
+                        <UserAvatar user={{ profilePicture: notification.avatar }} />
                       </ListItemAvatar>
                       <ListItemText
                         primary={notification.message}
@@ -253,27 +254,11 @@ const Layout = ({ children }) => {
                 onClick={handleMenu}
                 color="inherit"
               >
-                {user.profilePicture ? (
-                  <Avatar
-                    src={
-                      user.profilePicture
-                        ? `http://localhost:5000${user.profilePicture}`
-                        : "/default-profile.png"
-                    }
-                    alt={user.username}
-                    sx={{ width: 32, height: 32 }}
-                    onError={(e) => {
-                      e.target.src = "/default-profile.png";
-                    }}
-                  />
-                ) : (
-                  <AccountCircle
-                    sx={{
-                      color: "#fff",
-                      textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
-                    }}
-                  />
-                )}
+                <UserAvatar
+                  user={user}
+                  size={32}
+                  sx={{ width: 32, height: 32 }}
+                />
               </IconButton>
               <Menu
                 id="menu-appbar"

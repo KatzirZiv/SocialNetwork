@@ -54,6 +54,14 @@ import StatisticsGraphs from '../components/StatisticsGraphs';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import PostCard from "../components/PostCard";
+import ConfirmDialog from "../components/ConfirmDialog";
+import EditDialog from "../components/EditDialog";
+import useCommentInput from "../hooks/useCommentInput";
+import usePostMutations from "../hooks/usePostMutations";
+import UserAvatar from "../components/UserAvatar";
+import PostForm from "../components/PostForm";
+import useDialogState from "../hooks/useDialogState";
 
 const Home = () => {
   const { user } = useAuth();
@@ -75,12 +83,11 @@ const Home = () => {
   // State for controlling group selection dialog
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   // State for comment text per post (object: postId -> text)
-  const [commentTexts, setCommentTexts] = useState({});
+  const [commentTexts, handleCommentChange, setCommentTexts] = useCommentInput();
   // Dialog states for editing/deleting posts/comments
-  const [editPostDialogOpen, setEditPostDialogOpen] = useState(false);
-  const [editCommentDialogOpen, setEditCommentDialogOpen] = useState(false);
-  const [deletePostDialogOpen, setDeletePostDialogOpen] = useState(false);
-  const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false);
+  const { open, openDialog, closeDialog } = useDialogState([
+    'editPost', 'editComment', 'deletePost', 'deleteComment'
+  ]);
   // State for currently editing post/comment
   const [editingPost, setEditingPost] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
@@ -130,118 +137,32 @@ const Home = () => {
     queryFn: () => groups.getAll(),
   });
 
+  // Remove all direct useMutation hooks for posts/comments
+  // Integrate usePostMutations
+  const {
+    createPost,
+    updatePost,
+    deletePost,
+    likePost,
+    addComment,
+    updateComment,
+    deleteComment,
+  } = usePostMutations({ queryClient, user });
+
   // Mutation for creating a new post (text, image, video, group)
-  const createPostMutation = useMutation({
-    mutationFn: (formData) => posts.create(formData),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["posts"]);
-      setNewPost("");
-      setImageFile(null);
-      setImagePreview(null);
-      setVideoFile(null);
-      setVideoPreview(null);
-      setSelectedGroup("");
-      setError("");
-    },
-    onError: (error) => {
-      setError(error.response?.data?.message || "Failed to create post");
-    },
-  });
-
+  // const createPostMutation = useMutation({ ... });
   // Mutation for liking/unliking a post with optimistic UI update
-  const likePostMutation = useMutation({
-    mutationFn: ({ postId, isLiked }) =>
-      isLiked ? posts.unlike(postId) : posts.like(postId),
-    onMutate: async ({ postId, isLiked }) => {
-      // Optimistically update likes before server response
-      await queryClient.cancelQueries({ queryKey: ["posts"] });
-      const previousPosts = queryClient.getQueryData(["posts"]);
-
-      queryClient.setQueryData(["posts"], (oldData) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: {
-            ...oldData.data,
-            data: oldData.data.data.map((p) => {
-              if (p._id === postId) {
-                const newLikes = isLiked
-                  ? p.likes.filter((id) => id !== user?._id)
-                  : [...p.likes, user?._id];
-                return { ...p, likes: newLikes };
-              }
-              return p;
-            }),
-          },
-        };
-      });
-
-      return { previousPosts };
-    },
-    onError: (err, variables, context) => {
-      // Rollback optimistic update if error
-      if (context?.previousPosts) {
-        queryClient.setQueryData(["posts"], context.previousPosts);
-      }
-    },
-    onSettled: () => {
-      // Refetch posts after mutation
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
-    },
-  });
-
+  // const likePostMutation = useMutation({ ... });
   // Mutation for adding a comment to a post
-  const addCommentMutation = useMutation({
-    mutationFn: ({ postId, content }) => posts.addComment(postId, content),
-    onSuccess: (response, variables) => {
-      queryClient.invalidateQueries(["posts"]);
-      setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
-    },
-  });
-
+  // const addCommentMutation = useMutation({ ... });
   // Mutation for updating a post's content
-  const updatePostMutation = useMutation({
-    mutationFn: ({ postId, content }) => posts.update(postId, { content }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["posts"]);
-      setEditPostDialogOpen(false);
-      setEditingPost(null);
-      setEditPostContent("");
-    },
-  });
-
+  // const updatePostMutation = useMutation({ ... });
   // Mutation for deleting a post
-  const deletePostMutation = useMutation({
-    mutationFn: (postId) => posts.delete(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["posts"]);
-      setDeletePostDialogOpen(false);
-      setEditingPost(null);
-    },
-  });
-
+  // const deletePostMutation = useMutation({ ... });
   // Mutation for updating a comment's content
-  const updateCommentMutation = useMutation({
-    mutationFn: ({ postId, commentId, content }) =>
-      posts.updateComment(postId, commentId, content),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["posts"]);
-      setEditCommentDialogOpen(false);
-      setEditingComment(null);
-      setEditCommentContent("");
-    },
-  });
-
+  // const updateCommentMutation = useMutation({ ... });
   // Mutation for deleting a comment
-  const deleteCommentMutation = useMutation({
-    mutationFn: ({ postId, commentId }) =>
-      posts.deleteComment(postId, commentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["posts"]);
-      setDeleteCommentDialogOpen(false);
-      setEditingComment(null);
-    },
-  });
+  // const deleteCommentMutation = useMutation({ ... });
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
@@ -265,7 +186,20 @@ const Home = () => {
     if (selectedGroup) {
       formData.append('group', selectedGroup);
     }
-    createPostMutation.mutate(formData);
+    createPost.mutate(formData, {
+      onSuccess: () => {
+        setNewPost("");
+        setImageFile(null);
+        setImagePreview(null);
+        setVideoFile(null);
+        setVideoPreview(null);
+        setSelectedGroup("");
+        setError("");
+      },
+      onError: (error) => {
+        setError(error.response?.data?.message || "Failed to create post");
+      },
+    });
   };
 
   const handleImageChange = (e) => {
@@ -326,8 +260,10 @@ const Home = () => {
   const handleLike = (postId) => {
     const post = postsData?.data?.data.find((p) => p._id === postId);
     if (!post || !user) return;
-    const isLiked = post.likes.includes(user._id);
-    likePostMutation.mutate({ postId, isLiked });
+    const isLiked = post.likes.some(
+      (like) => like === user?._id || like?._id === user?._id
+    );
+    likePost.mutate({ postId, isLiked });
   };
 
   const handleCommentClick = (postId) => {
@@ -336,14 +272,16 @@ const Home = () => {
 
   const handleCommentSubmit = (postId) => {
     if (!commentTexts[postId]?.trim()) return;
-    addCommentMutation.mutate({ postId, content: commentTexts[postId] });
+    addComment.mutate({ postId, content: commentTexts[postId] }, {
+      onSuccess: () => setCommentTexts("")
+    });
   };
 
   useEffect(() => {
-    if (editPostDialogOpen && editingPost) {
+    if (open.editPost && editingPost) {
       setEditPostContent(editingPost.content || "");
     }
-  }, [editPostDialogOpen, editingPost]);
+  }, [open.editPost, editingPost]);
 
   useEffect(() => {
     if (imagePreview) {
@@ -612,104 +550,17 @@ const Home = () => {
           </div>
         )}
         {user && (
-          // Post creation form (only visible if logged in)
-          <Paper
-            elevation={2}
-            sx={{ p: 3, mb: 4, borderRadius: 3, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              {/* User avatar and post input */}
-              <Avatar
-                src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
-                sx={{ mr: 2, width: 48, height: 48 }}
-                onError={e => { e.target.src = "/default-profile.png"; }}
-              />
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder={`What's on your mind, ${user.username}?`}
-                value={newPost}
-                onChange={(e) => setNewPost(e.target.value)}
-                multiline
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 30,
-                    bgcolor: "#f0f2f5",
-                    "& fieldset": {
-                      border: "none",
-                    },
-                  },
-                }}
-              />
-            </Box>
-            {/* Image/video preview for new post */}
-            {(imagePreview || videoPreview) && (
-              <Box sx={{ position: "relative", mb: 2 }}>
-                <IconButton
-                  onClick={imagePreview ? handleRemoveImage : handleRemoveVideo}
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    bgcolor: "rgba(0,0,0,0.6)",
-                    color: "white",
-                    "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
-                  }}
-                >
-                  <CloseIcon />
-                </IconButton>
-                {imagePreview && (
-                  <canvas
-                    id="image-preview-canvas"
-                    width={400}
-                    height={225}
-                    style={{ width: '100%', borderRadius: '12px', display: 'block' }}
-                  />
-                )}
-                {videoPreview && <video src={videoPreview} controls style={{ width: "100%", borderRadius: "12px" }} />}
-              </Box>
-            )}
-            <Divider sx={{ my: 2 }} />
-            {/* Post creation actions: add image/video, submit post */}
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Box>
-                {/* Hidden file inputs for image/video upload */}
-                <input
-                  type="file"
-                  id="image-upload"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{ display: "none" }}
-                />
-                <input
-                  type="file"
-                  id="video-upload"
-                  accept="video/*"
-                  onChange={handleVideoChange}
-                  style={{ display: "none" }}
-                />
-                {/* Image and video upload buttons */}
-                <IconButton onClick={() => document.getElementById('image-upload').click()} size="small">
-                  <ImageIcon fontSize="small" /> Photo
-                </IconButton>
-                <IconButton onClick={handleVideoClick} size="small">
-                  <VideoLibraryIcon fontSize="small" /> Video
-                </IconButton>
-              </Box>
-              <Button
-                type="submit"
-                variant="contained"
-                onClick={handlePostSubmit}
-                disabled={
-                  createPostMutation.isLoading ||
-                  (!newPost.trim() && !imageFile && !videoFile)
-                }
-                sx={{ borderRadius: 2 }}
-              >
-                Post
-              </Button>
-            </Box>
-          </Paper>
+          <PostForm
+            user={user}
+            onSubmit={(formData, { reset }) => {
+              createPost.mutate(formData, {
+                onSuccess: reset,
+                onError: (error) => setError(error.response?.data?.message || "Failed to create post"),
+              });
+            }}
+            loading={createPost.isLoading}
+            error={error}
+          />
         )}
         {/* Main feed: list of posts */}
         {postsLoading ? (
@@ -719,7 +570,6 @@ const Home = () => {
         ) : (
           <Box sx={{ width: '100%', maxWidth: 680, margin: '0 auto' }}>
             {postsList.map((post) => {
-              // Determine if current user liked or commented on this post
               const isLikedByCurrentUser = post.likes.some(
                 (like) => like === user?._id || like?._id === user?._id
               );
@@ -729,376 +579,98 @@ const Home = () => {
                   comment.author?._id === user?._id
               );
               return (
-                <Card
+                <PostCard
                   key={post._id}
-                  sx={{
-                    mb: 3,
-                    width: '100%',
-                    borderRadius: 3,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    margin: '0 0 24px 0',
+                  post={post}
+                  user={user}
+                  isLikedByCurrentUser={isLikedByCurrentUser}
+                  hasCommentedByCurrentUser={hasCommentedByCurrentUser}
+                  commentTexts={commentTexts}
+                  openCommentBoxId={openCommentBoxId}
+                  onLike={() => handleLike(post._id)}
+                  onCommentClick={() => handleCommentClick(post._id)}
+                  onCommentChange={e => handleCommentChange(post._id, e)}
+                  onCommentSubmit={() => handleCommentSubmit(post._id)}
+                  onEdit={() => {
+                    setEditingPost(post);
+                    setEditPostContent(post.content);
+                    openDialog('editPost');
                   }}
-                >
-                  <CardContent>
-                    {/* Post header: author, date, menu */}
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", mb: 2 }}
-                    >
-                      <Avatar
-                        src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : "/default-profile.png"}
-                        alt={post.author?.username}
-                        component={Link}
-                        to={`/profile/${post.author?._id}`}
-                        sx={{ mr: 2 }}
-                        onError={e => { e.target.src = "/default-profile.png"; }}
-                      />
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography
-                          variant="h6"
-                          component={Link}
-                          to={`/profile/${post.author?._id}`}
-                          sx={{ textDecoration: "none", color: "inherit", fontWeight: 'bold', fontSize: '1rem' }}
-                        >
-                          {post.author?.username}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.8rem' }}>
-                          {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      </Box>
-                      {/* Post menu: edit/delete if owner */}
-                      <PostMenu
-                        post={post}
-                        user={user}
-                        onEdit={() => {
-                          setEditingPost(post);
-                          setEditPostContent(post.content);
-                          setEditPostDialogOpen(true);
-                        }}
-                        onDelete={() => {
-                          setEditingPost(post);
-                          setDeletePostDialogOpen(true);
-                        }}
-                      />
-                    </Box>
-                    {/* Group chip if post is from a group */}
-                    {post.group && (
-                      <Box sx={{ mb: 1 }}>
-                        <Chip
-                          label={`From group: ${post.group.name}`}
-                          component={Link}
-                          to={`/groups/${post.group._id}`}
-                          clickable
-                          color="primary"
-                          variant="outlined"
-                          sx={{ fontWeight: 500, fontSize: 13, mb: 0.5 }}
-                        />
-                      </Box>
-                    )}
-                    {/* Post content and media */}
-                    <Typography
-                      variant="body1"
-                      sx={{ mt: 1, whiteSpace: "pre-wrap" }}
-                    >
-                      {post.content}
-                    </Typography>
-                    {post.media && post.mediaType === 'video' ? (
-                      <Box sx={{ mt: 2, borderRadius: '12px' }}>
-                        <video
-                          src={`http://localhost:5000${post.media}`}
-                          controls
-                          style={{ width: "100%", borderRadius: "12px", display: 'block' }}
-                        />
-                      </Box>
-                    ) : post.media && post.mediaType === 'image' ? (
-                      <Box sx={{ mt: 2, borderRadius: '12px' }}>
-                        <img
-                          src={`http://localhost:5000${post.media}`}
-                          alt="Post media"
-                          style={{ width: "100%", borderRadius: "12px", display: 'block' }}
-                        />
-                      </Box>
-                    ) : null}
-                  </CardContent>
-                  <Divider />
-                  {/* Post actions: like, comment, share */}
-                  <CardActions sx={{ justifyContent: "space-around" }}>
-                    <Button
-                      sx={{
-                        color: isLikedByCurrentUser ? "#ec4899" : "inherit",
-                        fontWeight: 'bold'
-                      }}
-                      startIcon={
-                        isLikedByCurrentUser ? (
-                          <FavoriteIcon />
-                        ) : (
-                          <FavoriteBorderIcon />
-                        )
-                      }
-                      onClick={() => handleLike(post._id)}
-                    >
-                      Like ({post.likes.length})
-                    </Button>
-                    <Button
-                      sx={{
-                        color: hasCommentedByCurrentUser
-                          ? "#ec4899"
-                          : "inherit",
-                        fontWeight: 'bold'
-                      }}
-                      startIcon={<CommentIcon />}
-                      onClick={() => handleCommentClick(post._id)}
-                    >
-                      Comment ({post.comments.length})
-                    </Button>
-                    <Button
-                      startIcon={<ShareIcon />}
-                      sx={{ color: "inherit", fontWeight: 'bold' }}
-                    >
-                      Share
-                    </Button>
-                  </CardActions>
-                  {/* Comment box for adding a new comment */}
-                  {openCommentBoxId === post._id && (
-                    <Box sx={{ p: 2 }}>
-                      <Divider sx={{ mb: 2 }} />
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar
-                        src={user.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
-                        sx={{ mr: 2, width: 32, height: 32 }}
-                        onError={e => { e.target.src = "/default-profile.png"; }}
-                      />
-                      <TextField
-                        fullWidth
-                        variant="outlined"
-                        placeholder="Write a comment..."
-                        value={commentTexts[post._id] || ""}
-                        onChange={(e) =>
-                          setCommentTexts({
-                            ...commentTexts,
-                            [post._id]: e.target.value,
-                          })
-                        }
-                         sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 20,
-                          },
-                        }}
-                      />
-                      </Box>
-                      <Box sx={{ display: "flex", gap: 1, mt: 1, justifyContent: 'flex-end' }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleCommentSubmit(post._id)}
-                          disabled={addCommentMutation.isLoading}
-                        >
-                          Post Comment
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => setOpenCommentBoxId(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                  {/* List of comments for the post */}
-                  {post.comments.length > 0 && (
-                    <Box sx={{ p: 2 }}>
-                      <List>
-                        {post.comments.map((comment) => (
-                          <ListItem key={comment._id} alignItems="flex-start" sx={{ pl: 0 }}>
-                            <Avatar
-                              src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}` : "/default-profile.png"}
-                              alt={comment.author?.username}
-                              sx={{ mr: 2, width: 32, height: 32 }}
-                              onError={e => { e.target.src = "/default-profile.png"; }}
-                            />
-                            <Box sx={{ p: 1, borderRadius: 2, flexGrow: 1 }}>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                <Typography
-                                  variant="subtitle2"
-                                  component={Link}
-                                  to={`/profile/${comment.author?._id}`}
-                                  sx={{
-                                    textDecoration: "none",
-                                    color: "inherit",
-                                    fontWeight: 'bold'
-                                  }}
-                                >
-                                  {comment.author?.username}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  color="textSecondary"
-                                  sx={{ fontSize: '0.75rem' }}
-                                >
-                                  {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </Typography>
-                                {/* Comment menu for edit/delete if owner */}
-                                {comment.author?._id === user?._id && (
-                                  <CommentMenu
-                                    comment={comment}
-                                    user={user}
-                                    onEdit={() => {
-                                      setEditingComment({
-                                        ...comment,
-                                        postId: post._id,
-                                      });
-                                      setEditCommentContent(comment.content);
-                                      setEditCommentDialogOpen(true);
-                                    }}
-                                    onDelete={() => {
-                                      setEditingComment({
-                                        ...comment,
-                                        postId: post._id,
-                                      });
-                                      setDeleteCommentDialogOpen(true);
-                                    }}
-                                  />
-                                )}
-                              </Box>
-                              <Typography variant="body1" sx={{ fontSize: '0.9rem' }}>
-                                {comment.content}
-                              </Typography>
-                            </Box>
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Box>
-                  )}
-                </Card>
+                  onDelete={() => {
+                    setEditingPost(post);
+                    openDialog('deletePost');
+                  }}
+                  onOpenCommentBox={() => setOpenCommentBoxId(post._id)}
+                  onCloseCommentBox={() => setOpenCommentBoxId(null)}
+                  addCommentLoading={addComment.isLoading}
+                  setEditingComment={setEditingComment}
+                  setEditCommentContent={setEditCommentContent}
+                  setEditCommentDialogOpen={() => openDialog('editComment')}
+                  setDeleteCommentDialogOpen={() => openDialog('deleteComment')}
+                />
               );
             })}
           </Box>
         )}
         {/* Dialogs for editing/deleting posts and comments */}
-        <Dialog
-          open={deletePostDialogOpen}
-          onClose={() => setDeletePostDialogOpen(false)}
-        >
-          <DialogTitle>Delete Post</DialogTitle>
-          <DialogContent>
-            <Typography>Are you sure you want to delete this post?</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeletePostDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={() => deletePostMutation.mutate(editingPost._id)}
-              disabled={deletePostMutation.isLoading}
-            >
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={editPostDialogOpen}
-          onClose={() => setEditPostDialogOpen(false)}
-        >
-          <DialogTitle>Edit Post</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              value={editPostContent}
-              onChange={(e) => setEditPostContent(e.target.value)}
-              sx={{ mt: 2 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditPostDialogOpen(false)}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={() =>
-                updatePostMutation.mutate({
-                  postId: editingPost._id,
-                  content: editPostContent,
-                })
-              }
-              disabled={updatePostMutation.isLoading || !editPostContent.trim()}
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={editCommentDialogOpen}
-          onClose={() => setEditCommentDialogOpen(false)}
-        >
-          <DialogTitle>Edit Comment</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              multiline
-              rows={2}
-              value={editCommentContent}
-              onChange={(e) => setEditCommentContent(e.target.value)}
-              sx={{ mt: 2 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditCommentDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={() =>
-                updateCommentMutation.mutate({
-                  postId: editingComment.postId,
-                  commentId: editingComment._id,
-                  content: editCommentContent,
-                })
-              }
-              disabled={
-                updateCommentMutation.isLoading || !editCommentContent.trim()
-              }
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={deleteCommentDialogOpen}
-          onClose={() => setDeleteCommentDialogOpen(false)}
-        >
-          <DialogTitle>Delete Comment</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete this comment?
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteCommentDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={() =>
-                deleteCommentMutation.mutate({
-                  postId: editingComment.postId,
-                  commentId: editingComment._id,
-                })
-              }
-              disabled={deleteCommentMutation.isLoading}
-            >
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <EditDialog
+          open={open.editPost}
+          title="Edit Post"
+          value={editPostContent}
+          onChange={e => setEditPostContent(e.target.value)}
+          onClose={() => closeDialog('editPost')}
+          onSave={() => updatePost.mutate({ postId: editingPost._id, content: editPostContent }, {
+            onSuccess: () => {
+              closeDialog('editPost');
+              setEditingPost(null);
+              setEditPostContent("");
+            }
+          })}
+          loading={updatePost.isLoading}
+        />
+        <EditDialog
+          open={open.editComment}
+          title="Edit Comment"
+          value={editCommentContent}
+          onChange={e => setEditCommentContent(e.target.value)}
+          onClose={() => closeDialog('editComment')}
+          onSave={() => updateComment.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent }, {
+            onSuccess: () => {
+              closeDialog('editComment');
+              setEditingComment(null);
+              setEditCommentContent("");
+            }
+          })}
+          loading={updateComment.isLoading}
+        />
+        <ConfirmDialog
+          open={open.deletePost}
+          title="Delete Post"
+          content="Are you sure you want to delete this post?"
+          onClose={() => closeDialog('deletePost')}
+          onConfirm={() => deletePost.mutate(editingPost._id, {
+            onSuccess: () => {
+              closeDialog('deletePost');
+              setEditingPost(null);
+            }
+          })}
+          loading={deletePost.isLoading}
+          confirmText="Delete"
+        />
+        <ConfirmDialog
+          open={open.deleteComment}
+          title="Delete Comment"
+          content="Are you sure you want to delete this comment?"
+          onClose={() => closeDialog('deleteComment')}
+          onConfirm={() => deleteComment.mutate({ postId: editingComment.postId, commentId: editingComment._id }, {
+            onSuccess: () => {
+              closeDialog('deleteComment');
+              setEditingComment(null);
+            }
+          })}
+          loading={deleteComment.isLoading}
+          confirmText="Delete"
+        />
       </Box>
       {/* Right: Friends list panel (hidden on mobile) */}
       <Box

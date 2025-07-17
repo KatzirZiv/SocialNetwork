@@ -25,6 +25,8 @@ import { messages, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import useSocket from "../hooks/useSocket";
 import { useLocation, Link } from "react-router-dom";
+import UserAvatar from "../components/UserAvatar";
+import UserList from "../components/UserList";
 
 const Chat = () => {
   const { user: currentUser } = useAuth();
@@ -135,6 +137,38 @@ const Chat = () => {
       ? `http://localhost:5000${user.profilePicture}`
       : `http://localhost:5000/uploads/default-profile.png`;
 
+  // Helper to get secondary text for conversation preview
+  const getSecondary = (friend) => {
+    const conversationList = Array.isArray(conversations?.data?.data)
+      ? conversations.data.data
+      : [];
+    const conversation = conversationList.find((c) =>
+      c.participants.some(
+        (p) => p._id?.toString() === friend._id?.toString()
+      )
+    );
+    return !conversation
+      ? "No messages yet. Say hello!"
+      : conversation.lastMessage?.content || "Conversation started";
+  };
+
+  // Online indicator as an action
+  const getActions = (friend) =>
+    onlineUsers.includes(friend._id) ? (
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          width: 12,
+          height: 12,
+          bgcolor: "success.main",
+          borderRadius: "50%",
+          border: "2px solid white",
+        }}
+      />
+    ) : null;
+
   if (conversationsLoading) {
     // Show loading spinner while conversations are loading
     return (
@@ -149,62 +183,19 @@ const Chat = () => {
       <Box sx={{ display: "flex", height: "100%", gap: 2 }}>
         {/* Conversations List */}
         <Paper sx={{ width: 300, overflow: "auto" }}>
-          <List>
-            {(Array.isArray(friendsData?.data?.data)
-              ? friendsData.data.data
-              : []
-            ).map((friend) => {
-              // Find conversation with this friend
-              const conversationList = Array.isArray(conversations?.data?.data)
-                ? conversations.data.data
-                : [];
-              const conversation = conversationList.find((c) =>
-                c.participants.some(
-                  (p) => p._id?.toString() === friend._id?.toString()
-                )
-              );
-
-              return (
-                <ListItem key={friend._id}>
-                  <ListItemButton
-                    selected={selectedUser?._id === friend._id}
-                    onClick={() => setSelectedUser(friend)}
-                  >
-                    <ListItemAvatar>
-                      <Box sx={{ position: "relative" }}>
-                        <Avatar
-                          src={getProfilePicture(friend)}
-                          alt={friend.username}
-                        />
-                        {onlineUsers.includes(friend._id) && (
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              bottom: 0,
-                              right: 0,
-                              width: 12,
-                              height: 12,
-                              bgcolor: "success.main",
-                              borderRadius: "50%",
-                              border: "2px solid white",
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={friend.username}
-                      secondary={
-                        !conversation
-                          ? "No messages yet. Say hello!"
-                          : conversation.lastMessage?.content || "Conversation started"
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
-          </List>
+          <UserList
+            users={Array.isArray(friendsData?.data?.data) ? friendsData.data.data : []}
+            loading={friendsLoading}
+            emptyText="No friends found"
+            getActions={getActions}
+            getSecondary={getSecondary}
+            avatarSize={40}
+            divider={true}
+            onUserClick={setSelectedUser}
+            selectedUserId={selectedUser?._id}
+            showSearch={false}
+            sx={{ position: 'relative' }}
+          />
         </Paper>
 
         {/* Chat Area */}
@@ -221,9 +212,9 @@ const Chat = () => {
                   alignItems: "center",
                 }}
               >
-                <Avatar
-                  src={getProfilePicture(selectedUser)}
-                  alt={selectedUser.username}
+                <UserAvatar
+                  user={selectedUser}
+                  size={40}
                   sx={{ mr: 2 }}
                 />
                 <Box>
@@ -280,10 +271,10 @@ const Chat = () => {
                         }}
                       >
                         {!isOwn && (
-                          <Avatar
-                            src={getProfilePicture(selectedUser)}
-                            alt={selectedUser.username}
-                            sx={{ mr: 1, width: 32, height: 32 }}
+                          <UserAvatar
+                            user={selectedUser}
+                            size={32}
+                            sx={{ mr: 1 }}
                           />
                         )}
                         <Paper
@@ -314,10 +305,10 @@ const Chat = () => {
                           </Typography>
                         </Paper>
                         {isOwn && (
-                          <Avatar
-                            src={getProfilePicture(currentUser)}
-                            alt={currentUser.username}
-                            sx={{ ml: 1, width: 32, height: 32 }}
+                          <UserAvatar
+                            user={currentUser}
+                            size={32}
+                            sx={{ ml: 1 }}
                           />
                         )}
                       </Box>

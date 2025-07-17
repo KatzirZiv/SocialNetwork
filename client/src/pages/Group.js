@@ -52,6 +52,15 @@ import { groups, posts, users } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import PostMenu from "../components/PostMenu";
 import CommentMenu from "../components/CommentMenu";
+import PostCard from "../components/PostCard";
+import ConfirmDialog from "../components/ConfirmDialog";
+import EditDialog from "../components/EditDialog";
+import useCommentInput from "../hooks/useCommentInput";
+import usePostMutations from "../hooks/usePostMutations";
+import UserAvatar from "../components/UserAvatar";
+import PostForm from "../components/PostForm";
+import useDialogState from "../hooks/useDialogState";
+import UserList from "../components/UserList";
 
 const Group = () => {
   // Get group ID from URL params
@@ -60,7 +69,9 @@ const Group = () => {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   // Dialog and form state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const { open, openDialog, closeDialog } = useDialogState([
+    'editPost', 'editComment', 'deletePost', 'deleteComment'
+  ]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [newPost, setNewPost] = useState("");
   const [activeTab, setActiveTab] = useState(0);
@@ -74,10 +85,6 @@ const Group = () => {
   // Media state for post/cover
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [editPostDialogOpen, setEditPostDialogOpen] = useState(false);
-  const [editCommentDialogOpen, setEditCommentDialogOpen] = useState(false);
-  const [deletePostDialogOpen, setDeletePostDialogOpen] = useState(false);
-  const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
   const [editPostContent, setEditPostContent] = useState("");
@@ -92,7 +99,7 @@ const Group = () => {
   const [optimisticLikes, setOptimisticLikes] = useState({});
   // State for open comment box and comment texts
   const [openCommentBoxId, setOpenCommentBoxId] = useState(null);
-  const [commentTexts, setCommentTexts] = useState({});
+  const [commentTexts, handleCommentChange, setCommentTexts] = useCommentInput();
   // Video state for post
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
@@ -140,6 +147,17 @@ const Group = () => {
     enabled: !!currentUser?._id,
   });
 
+  // Integrate usePostMutations for post/comment actions
+  const {
+    createPost,
+    updatePost,
+    deletePost,
+    likePost,
+    addComment,
+    updateComment,
+    deleteComment,
+  } = usePostMutations({ queryClient, user: currentUser, postsQueryKey: ["groupPosts", id] });
+
   // --- Mutations for group actions ---
 
   // Join group (send join request or join directly)
@@ -179,29 +197,6 @@ const Group = () => {
     },
   });
 
-  // Create a new post in the group
-  const createPostMutation = useMutation({
-    mutationFn: (formData) => posts.create(formData),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setNewPost("");
-      setImageFile(null);
-      setImagePreview(null);
-    },
-  });
-
-  // Like a post in the group
-  const likePostMutation = useMutation({
-    mutationFn: (postId) => posts.like(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setOptimisticLikes({});
-    },
-    onError: () => {
-      setOptimisticLikes({});
-    },
-  });
-
   // Invite a friend to the group (admin)
   const inviteMemberMutation = useMutation({
     mutationFn: ({ groupId, userId }) => groups.invite(groupId, userId),
@@ -209,50 +204,6 @@ const Group = () => {
       queryClient.invalidateQueries(["group", id]);
       setInviteDialogOpen(false);
       setSelectedFriend(null);
-    },
-  });
-
-  // Update a post in the group
-  const updatePostMutation = useMutation({
-    mutationFn: ({ postId, content }) => posts.update(postId, { content }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setEditPostDialogOpen(false);
-      setEditingPost(null);
-      setEditPostContent("");
-    },
-  });
-
-  // Delete a post in the group
-  const deletePostMutation = useMutation({
-    mutationFn: (postId) => posts.delete(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setDeletePostDialogOpen(false);
-      setEditingPost(null);
-    },
-  });
-
-  // Update a comment in the group
-  const updateCommentMutation = useMutation({
-    mutationFn: ({ postId, commentId, content }) =>
-      posts.updateComment(postId, commentId, content),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setEditCommentDialogOpen(false);
-      setEditingComment(null);
-      setEditCommentContent("");
-    },
-  });
-
-  // Delete a comment in the group
-  const deleteCommentMutation = useMutation({
-    mutationFn: ({ postId, commentId }) =>
-      posts.deleteComment(postId, commentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setDeleteCommentDialogOpen(false);
-      setEditingComment(null);
     },
   });
 
@@ -273,15 +224,6 @@ const Group = () => {
       queryClient.invalidateQueries(["group", id]);
       setAddMemberDialogOpen(false);
       setUserToAdd(null);
-    },
-  });
-
-  // Add a comment to a post
-  const addCommentMutation = useMutation({
-    mutationFn: ({ postId, content }) => posts.addComment(postId, content),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(["groupPosts", id]);
-      setCommentTexts((prev) => ({ ...prev, [variables.postId]: "" }));
     },
   });
 
@@ -347,11 +289,14 @@ const Group = () => {
     if (id) {
       formData.append('group', id);
     }
-    createPostMutation.mutate(formData, {
+    createPost.mutate(formData, {
       onError: (error) => {
         setError(error.response?.data?.message || "Failed to create post");
       },
       onSuccess: () => {
+        setNewPost("");
+        setImageFile(null);
+        setImagePreview(null);
         setVideoFile(null);
         setVideoPreview(null);
         setError("");
@@ -360,18 +305,11 @@ const Group = () => {
   };
 
   const handleLike = (postId) => {
-    setOptimisticLikes((prev) => {
-      const post = groupPostsList.find((p) => p._id === postId);
-      if (!post) return prev;
-      const liked =
-        post.likes.includes(currentUser?._id) ||
-        (prev[postId] && prev[postId].liked);
-      return {
-        ...prev,
-        [postId]: { liked: !liked },
-      };
-    });
-    likePostMutation.mutate(postId);
+    const groupPostsList = groupPosts?.data?.data || [];
+    const post = groupPostsList.find((p) => p._id === postId);
+    if (!post || !currentUser) return;
+    const isLiked = post.likes.includes(currentUser._id);
+    likePost.mutate({ postId, isLiked });
   };
 
   const handleInviteFriend = () => {
@@ -410,14 +348,20 @@ const Group = () => {
       onSuccess: () => {
         setCoverImageFile(null);
         setCoverImagePreview(null);
+        const input = document.getElementById('group-cover-image-upload');
+        if (input) input.value = '';
+        setTimeout(() => {
+          window.location.href = window.location.pathname;
+        }, 300);
       },
     });
   };
 
   const handleCommentSubmit = (postId) => {
-    const content = commentTexts[postId]?.trim();
-    if (!content) return;
-    addCommentMutation.mutate({ postId, content });
+    if (!commentTexts[postId]?.trim()) return;
+    addComment.mutate({ postId, content: commentTexts[postId] }, {
+      onSuccess: () => setCommentTexts("")
+    });
   };
 
   const handleVideoChange = (e) => {
@@ -465,10 +409,10 @@ const Group = () => {
       : `http://localhost:5000/uploads/default-profile.png`;
 
   useEffect(() => {
-    if (editPostDialogOpen && editingPost) {
+    if (open.editPost && editingPost) {
       setEditPostContent(editingPost.content || "");
     }
-  }, [editPostDialogOpen, editingPost]);
+  }, [open.editPost, editingPost]);
 
   useEffect(() => {
     if (isAdmin && window.history.state && window.history.state.usr && window.history.state.usr.openTransferAdmin) {
@@ -626,7 +570,8 @@ const Group = () => {
                 Change Cover
               </Button>
             </label>
-            {coverImagePreview && (
+            {/* Only show Save button and preview if there is a new image selected */}
+            {coverImagePreview && coverImageFile && (
               <Button
                 variant="contained"
                 color="primary"
@@ -639,7 +584,8 @@ const Group = () => {
             )}
           </Box>
         )}
-        {coverImagePreview && (
+        {/* Only show preview if there is a new image selected */}
+        {coverImagePreview && coverImageFile && (
           <Box
             sx={{
               position: "absolute",
@@ -784,89 +730,18 @@ const Group = () => {
       {activeTab === 0 && (
         <>
           {isMember && (
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Box component="form" onSubmit={handleCreatePost}>
-                {error && (
-                  <Alert severity="error" sx={{ mb: 1 }}>
-                    {error}
-                  </Alert>
-                )}
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  placeholder="Share something with the group..."
-                  value={newPost}
-                  onChange={(e) => setNewPost(e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 2 }}>
-                  <input
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    id="group-post-image-upload"
-                    type="file"
-                    onChange={handleImageChange}
-                  />
-                  <label htmlFor="group-post-image-upload">
-                    <Button variant="outlined" component="span">
-                      Upload Image
-                    </Button>
-                  </label>
-                  <input
-                    accept="video/*"
-                    style={{ display: "none" }}
-                    id="group-post-video-upload"
-                    type="file"
-                    onChange={handleVideoChange}
-                  />
-                  <label htmlFor="group-post-video-upload">
-                    <Button variant="outlined" component="span">
-                      Upload Video
-                    </Button>
-                  </label>
-                  {imagePreview && (
-                    <Box sx={{ position: "relative", display: "inline-block" }}>
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        style={{ maxHeight: "100px", borderRadius: "4px" }}
-                      />
-                      <IconButton
-                        size="small"
-                        onClick={handleRemoveImage}
-                        sx={{ position: "absolute", top: -8, right: -8, bgcolor: "background.paper" }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
-                  {videoPreview && (
-                    <Box sx={{ position: "relative", display: "inline-block" }}>
-                      <video
-                        src={videoPreview}
-                        controls
-                        style={{ maxHeight: "100px", borderRadius: "4px" }}
-                      />
-                      <IconButton
-                        size="small"
-                        onClick={handleRemoveVideo}
-                        sx={{ position: "absolute", top: -8, right: -8, bgcolor: "background.paper" }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  )}
-                </Box>
-                <Button
-                  variant="contained"
-                  type="submit"
-                  disabled={(!newPost.trim() && !imageFile && !videoFile) || createPostMutation.isLoading}
-                >
-                  {createPostMutation.isLoading ? "Posting..." : "Post"}
-                </Button>
-              </Box>
-            </Paper>
+            <PostForm
+              user={currentUser}
+              onSubmit={(formData, { reset }) => {
+                createPost.mutate(formData, {
+                  onSuccess: reset,
+                  onError: (error) => setError(error.response?.data?.message || "Failed to create post"),
+                });
+              }}
+              loading={createPost.isLoading}
+              error={error}
+              groupId={id}
+            />
           )}
 
           {postsLoading ? (
@@ -894,211 +769,39 @@ const Group = () => {
                     comment.author?._id === currentUser?._id
                 );
                 return (
-                  <Card key={post._id} sx={{ mb: 3 }}>
-                    <CardContent>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 2 }}
-                      >
-                        <Avatar
-                          src={post.author?.profilePicture ? `http://localhost:5000${post.author.profilePicture}` : "/default-profile.png"}
-                          alt={post.author?.username}
-                          component={Link}
-                          to={`/profile/${post.author?._id}`}
-                          sx={{ mr: 2 }}
-                          onError={e => { e.target.src = "/default-profile.png"; }}
-                        />
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography
-                            variant="h6"
-                            component={Link}
-                            to={`/profile/${post.author?._id}`}
-                            sx={{ textDecoration: "none", color: "inherit" }}
-                          >
-                            {post.author?.username}
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            {new Date(post.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </Typography>
-                        </Box>
-                        <PostMenu
-                          post={post}
-                          user={currentUser}
-                          onEdit={() => {
-                            setEditingPost(post);
-                            setEditPostContent(post.content);
-                            setEditPostDialogOpen(true);
-                          }}
-                          onDelete={() => {
-                            setEditingPost(post);
-                            setDeletePostDialogOpen(true);
-                          }}
-                        />
-                      </Box>
-                      <Typography
-                        variant="body1"
-                        sx={{ mt: 1, whiteSpace: "pre-wrap" }}
-                      >
-                        {post.content}
-                      </Typography>
-                      {post.media && post.mediaType === 'video' ? (
-                        <Box sx={{ mt: 2 }}>
-                          <video
-                            src={`http://localhost:5000${post.media}`}
-                            controls
-                            style={{ maxWidth: "100%", borderRadius: "8px" }}
-                          />
-                        </Box>
-                      ) : post.media && post.mediaType === 'image' ? (
-                        <Box sx={{ mt: 2 }}>
-                          <img
-                            src={`http://localhost:5000${post.media}`}
-                            alt="Post media"
-                            style={{ maxWidth: "100%", borderRadius: "8px" }}
-                          />
-                        </Box>
-                      ) : null}
-                    </CardContent>
-                    <Divider />
-                    <CardActions sx={{ justifyContent: "space-around" }}>
-                      <Button
-                        sx={{
-                          color: isLikedByCurrentUser ? "#ec4899" : "inherit",
-                        }}
-                        startIcon={
-                          isLikedByCurrentUser ? (
-                            <FavoriteIcon />
-                          ) : (
-                            <FavoriteBorderIcon />
-                          )
-                        }
-                        onClick={() => handleLike(post._id)}
-                      >
-                        Like ({post.likes.length})
-                      </Button>
-                      <Button
-                        sx={{
-                          color: hasCommentedByCurrentUser
-                            ? "#ec4899"
-                            : "inherit",
-                        }}
-                        startIcon={<CommentIcon />}
-                        onClick={() =>
-                          setOpenCommentBoxId(
-                            openCommentBoxId === post._id ? null : post._id
-                          )
-                        }
-                      >
-                        Comment ({post.comments.length})
-                      </Button>
-                      <Button
-                        startIcon={<ShareIcon />}
-                        sx={{ color: "inherit" }}
-                      >
-                        Share
-                      </Button>
-                    </CardActions>
-                    {openCommentBoxId === post._id && (
-                      <Box sx={{ p: 2 }}>
-                        <Divider sx={{ mb: 2 }} />
-                        <TextField
-                          fullWidth
-                          variant="outlined"
-                          placeholder="Write a comment..."
-                          value={commentTexts[post._id] || ""}
-                          onChange={(e) =>
-                            setCommentTexts({
-                              ...commentTexts,
-                              [post._id]: e.target.value,
-                            })
-                          }
-                        />
-                        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            onClick={() => handleCommentSubmit(post._id)}
-                            disabled={addCommentMutation.isLoading}
-                          >
-                            Post Comment
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => setOpenCommentBoxId(null)}
-                          >
-                            Cancel
-                          </Button>
-                        </Box>
-                      </Box>
-                    )}
-                    {post.comments.length > 0 && (
-                      <Box sx={{ p: 2 }}>
-                        <List>
-                          {post.comments.map((comment) => (
-                            <ListItem key={comment._id} alignItems="flex-start">
-                              <Avatar
-                                src={comment.author?.profilePicture ? `http://localhost:5000${comment.author.profilePicture}` : "/default-profile.png"}
-                                alt={comment.author?.username}
-                                sx={{ mr: 2 }}
-                                onError={e => { e.target.src = "/default-profile.png"; }}
-                              />
-                              <Box>
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                  }}
-                                >
-                                  <Typography
-                                    variant="subtitle2"
-                                    component={Link}
-                                    to={`/profile/${comment.author?._id}`}
-                                    sx={{
-                                      textDecoration: "none",
-                                      color: "inherit",
-                                    }}
-                                  >
-                                    {comment.author?.username}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    color="textSecondary"
-                                  >
-                                    {new Date(comment.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                  </Typography>
-                                  {comment.author?._id === currentUser?._id && (
-                                    <CommentMenu
-                                      comment={comment}
-                                      user={currentUser}
-                                      onEdit={() => {
-                                        setEditingComment({
-                                          ...comment,
-                                          postId: post._id,
-                                        });
-                                        setEditCommentContent(comment.content);
-                                        setEditCommentDialogOpen(true);
-                                      }}
-                                      onDelete={() => {
-                                        setEditingComment({
-                                          ...comment,
-                                          postId: post._id,
-                                        });
-                                        setDeleteCommentDialogOpen(true);
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                                <Typography variant="body1">
-                                  {comment.content}
-                                </Typography>
-                              </Box>
-                            </ListItem>
-                          ))}
-                        </List>
-                      </Box>
-                    )}
-                  </Card>
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    user={currentUser}
+                    isLikedByCurrentUser={isLikedByCurrentUser}
+                    hasCommentedByCurrentUser={hasCommentedByCurrentUser}
+                    commentTexts={commentTexts}
+                    openCommentBoxId={openCommentBoxId}
+                    onLike={() => handleLike(post._id)}
+                    onCommentClick={() =>
+                      setOpenCommentBoxId(
+                        openCommentBoxId === post._id ? null : post._id
+                      )
+                    }
+                    onCommentChange={e => handleCommentChange(post._id, e)}
+                    onCommentSubmit={() => handleCommentSubmit(post._id)}
+                    onEdit={() => {
+                      setEditingPost(post);
+                      setEditPostContent(post.content);
+                      openDialog('editPost');
+                    }}
+                    onDelete={() => {
+                      setEditingPost(post);
+                      openDialog('deletePost');
+                    }}
+                    onOpenCommentBox={() => setOpenCommentBoxId(post._id)}
+                    onCloseCommentBox={() => setOpenCommentBoxId(null)}
+                    addCommentLoading={addComment.isLoading}
+                    setEditingComment={setEditingComment}
+                    setEditCommentContent={setEditCommentContent}
+                    setEditCommentDialogOpen={() => openDialog('editComment')}
+                    setDeleteCommentDialogOpen={() => openDialog('deleteComment')}
+                  />
                 );
               })}
             </Grid>
@@ -1130,105 +833,47 @@ const Group = () => {
               {isAdmin && joinRequests.length > 0 && (
                 <Paper sx={{ p: 2, mb: 2, background: '#fff7fa' }}>
                   <Typography variant="h6" sx={{ mb: 1 }}>Pending Join Requests</Typography>
-                  <List>
-                    {joinRequests.map((request) => (
-                      <ListItem key={request._id} secondaryAction={
-                        <>
-                          <Button size="small" color="primary" onClick={() => handleAcceptJoinRequest(request._id)} sx={{ mr: 1 }}>Accept</Button>
-                          <Button size="small" color="error" onClick={() => handleDeclineJoinRequest(request._id)}>Decline</Button>
-                        </>
-                      }>
-                        <ListItemAvatar>
-                          <Avatar src={request.user?.profilePicture ? `http://localhost:5000${request.user.profilePicture}` : '/default-profile.png'} />
-                        </ListItemAvatar>
-                        <ListItemText primary={request.user?.username} />
-                      </ListItem>
-                    ))}
-                  </List>
+                  <UserList
+                    users={joinRequests.map(r => r.user)}
+                    getActions={user => (
+                      <>
+                        <Button size="small" color="primary" onClick={() => handleAcceptJoinRequest(joinRequests.find(r => r.user._id === user._id)._id)} sx={{ mr: 1 }}>Accept</Button>
+                        <Button size="small" color="error" onClick={() => handleDeclineJoinRequest(joinRequests.find(r => r.user._id === user._id)._id)}>Decline</Button>
+                      </>
+                    )}
+                    avatarSize={40}
+                    divider={true}
+                  />
                 </Paper>
               )}
-              <List>
-                {group.members?.map((member) => (
-                  <ListItem
-                    key={member._id}
-                    secondaryAction={
-                      member._id === group.admin?._id ? (
-                        <Chip label="Admin" color="primary" size="small" />
-                      ) : isAdmin ? (
-                        <Button
-                          color="error"
-                          size="small"
-                          onClick={() => {
-                            setMemberToRemove(member);
-                            setRemoveMemberDialogOpen(true);
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      ) : null
-                    }
-                  >
-                    <ListItemAvatar>
-                      <Avatar
-                        src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
-                        alt={member.username}
-                        onError={e => { e.target.src = "/default-profile.png"; }}
-                      />
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={member.username}
-                      secondary={
-                        member._id === group.admin?._id ? "Group Admin" : "Member"
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
+              <UserList
+                users={group.members}
+                getActions={member => (
+                  member._id === group.admin?._id ? (
+                    <Chip label="Admin" color="primary" size="small" />
+                  ) : isAdmin ? (
+                    <Button
+                      color="error"
+                      size="small"
+                      onClick={() => {
+                        setMemberToRemove(member);
+                        setRemoveMemberDialogOpen(true);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  ) : null
+                )}
+                getSecondary={member => member._id === group.admin?._id ? "Group Admin" : "Member"}
+                avatarSize={40}
+                divider={true}
+              />
             </>
           )}
         </Paper>
       )}
 
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-        <DialogTitle>Edit Group</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="Group Name"
-            value={editForm.name}
-            onChange={(e) =>
-              setEditForm((prev) => ({ ...prev, name: e.target.value }))
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Description"
-            value={editForm.description}
-            onChange={(e) =>
-              setEditForm((prev) => ({ ...prev, description: e.target.value }))
-            }
-            margin="normal"
-            multiline
-            rows={4}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleUpdateGroup}
-            variant="contained"
-            disabled={updateGroupMutation.isLoading}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
-      >
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Delete Group</DialogTitle>
         <DialogContent>
           <Typography>
@@ -1255,35 +900,16 @@ const Group = () => {
       >
         <DialogTitle>Invite Friends to Group</DialogTitle>
         <DialogContent>
-          <Autocomplete
-            options={filteredFriends}
-            getOptionLabel={(option) => option.username}
-            value={selectedFriend}
-            onChange={(event, newValue) => setSelectedFriend(newValue)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Search Friends"
-                margin="normal"
-                fullWidth
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            )}
-            renderOption={(props, option) => (
-              <ListItem {...props}>
-                <ListItemAvatar>
-                  <Avatar
-                    src={option.profilePicture ? `http://localhost:5000${option.profilePicture}` : "/default-profile.png"}
-                    alt={option.username}
-                    onError={e => { e.target.src = "/default-profile.png"; }}
-                  />
-                </ListItemAvatar>
-                <ListItemText primary={option.username} />
-              </ListItem>
-            )}
+          <UserList
+            users={filteredFriends}
             loading={friendsLoading}
-            loadingText="Loading friends..."
-            noOptionsText="No friends found"
+            emptyText="No friends found"
+            onUserClick={friend => setSelectedFriend(friend)}
+            selectedUserId={selectedFriend?._id}
+            getSecondary={null}
+            getActions={null}
+            avatarSize={40}
+            divider={true}
           />
         </DialogContent>
         <DialogActions>
@@ -1298,123 +924,65 @@ const Group = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={editPostDialogOpen}
-        onClose={() => setEditPostDialogOpen(false)}
-      >
-        <DialogTitle>Edit Post</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            value={editPostContent}
-            onChange={(e) => setEditPostContent(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditPostDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={() =>
-              updatePostMutation.mutate({
-                postId: editingPost._id,
-                content: editPostContent,
-              })
-            }
-            disabled={updatePostMutation.isLoading || !editPostContent.trim()}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={deletePostDialogOpen}
-        onClose={() => setDeletePostDialogOpen(false)}
-      >
-        <DialogTitle>Delete Post</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this post?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeletePostDialogOpen(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => deletePostMutation.mutate(editingPost._id)}
-            disabled={deletePostMutation.isLoading}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={editCommentDialogOpen}
-        onClose={() => setEditCommentDialogOpen(false)}
-      >
-        <DialogTitle>Edit Comment</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            value={editCommentContent}
-            onChange={(e) => setEditCommentContent(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditCommentDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() =>
-              updateCommentMutation.mutate({
-                postId: editingComment.postId,
-                commentId: editingComment._id,
-                content: editCommentContent,
-              })
-            }
-            disabled={
-              updateCommentMutation.isLoading || !editCommentContent.trim()
-            }
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={deleteCommentDialogOpen}
-        onClose={() => setDeleteCommentDialogOpen(false)}
-      >
-        <DialogTitle>Delete Comment</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this comment?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteCommentDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() =>
-              deleteCommentMutation.mutate({
-                postId: editingComment.postId,
-                commentId: editingComment._id,
-              })
-            }
-            disabled={deleteCommentMutation.isLoading}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Dialogs for editing/deleting posts and comments */}
+      <EditDialog
+        open={open.editPost}
+        title="Edit Post"
+        value={editPostContent}
+        onChange={e => setEditPostContent(e.target.value)}
+        onClose={() => closeDialog('editPost')}
+        onSave={() => updatePost.mutate({ postId: editingPost._id, content: editPostContent }, {
+          onSuccess: () => {
+            closeDialog('editPost');
+            setEditingPost(null);
+            setEditPostContent("");
+          }
+        })}
+        loading={updatePost.isLoading}
+      />
+      <EditDialog
+        open={open.editComment}
+        title="Edit Comment"
+        value={editCommentContent}
+        onChange={e => setEditCommentContent(e.target.value)}
+        onClose={() => closeDialog('editComment')}
+        onSave={() => updateComment.mutate({ postId: editingComment.postId, commentId: editingComment._id, content: editCommentContent }, {
+          onSuccess: () => {
+            closeDialog('editComment');
+            setEditingComment(null);
+            setEditCommentContent("");
+          }
+        })}
+        loading={updateComment.isLoading}
+      />
+      <ConfirmDialog
+        open={open.deletePost}
+        title="Delete Post"
+        content="Are you sure you want to delete this post?"
+        onClose={() => closeDialog('deletePost')}
+        onConfirm={() => deletePost.mutate(editingPost._id, {
+          onSuccess: () => {
+            closeDialog('deletePost');
+            setEditingPost(null);
+          }
+        })}
+        loading={deletePost.isLoading}
+        confirmText="Delete"
+      />
+      <ConfirmDialog
+        open={open.deleteComment}
+        title="Delete Comment"
+        content="Are you sure you want to delete this comment?"
+        onClose={() => closeDialog('deleteComment')}
+        onConfirm={() => deleteComment.mutate({ postId: editingComment.postId, commentId: editingComment._id }, {
+          onSuccess: () => {
+            closeDialog('deleteComment');
+            setEditingComment(null);
+          }
+        })}
+        loading={deleteComment.isLoading}
+        confirmText="Delete"
+      />
 
       <Dialog
         open={removeMemberDialogOpen}
@@ -1452,14 +1020,16 @@ const Group = () => {
       >
         <DialogTitle>Add Member</DialogTitle>
         <DialogContent>
-          <Autocomplete
-            options={filteredFriends}
-            getOptionLabel={(option) => option.username}
-            value={userToAdd}
-            onChange={(_, value) => setUserToAdd(value)}
-            renderInput={(params) => (
-              <TextField {...params} label="Select Friend" />
-            )}
+          <UserList
+            users={filteredFriends}
+            loading={friendsLoading}
+            emptyText="No friends found"
+            onUserClick={friend => setUserToAdd(friend)}
+            selectedUserId={userToAdd?._id}
+            getSecondary={null}
+            getActions={null}
+            avatarSize={40}
+            divider={true}
           />
         </DialogContent>
         <DialogActions>
@@ -1485,25 +1055,15 @@ const Group = () => {
           <Typography gutterBottom>
             You must transfer admin rights to another member before leaving the group. Please select the new admin:
           </Typography>
-          <List>
-            {group.members?.filter(m => m._id !== group.admin?._id).map(member => (
-              <ListItem
-                button
-                key={member._id}
-                selected={selectedNewAdmin === member._id}
-                onClick={() => setSelectedNewAdmin(member._id)}
-              >
-                <ListItemAvatar>
-                  <Avatar
-                    src={member.profilePicture ? `http://localhost:5000${member.profilePicture}` : "/default-profile.png"}
-                    alt={member.username}
-                    onError={e => { e.target.src = "/default-profile.png"; }}
-                  />
-                </ListItemAvatar>
-                <ListItemText primary={member.username} />
-              </ListItem>
-            ))}
-          </List>
+          <UserList
+            users={group.members?.filter(m => m._id !== group.admin?._id)}
+            onUserClick={member => setSelectedNewAdmin(member._id)}
+            selectedUserId={selectedNewAdmin}
+            getSecondary={null}
+            getActions={null}
+            avatarSize={40}
+            divider={true}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTransferAdminDialogOpen(false)}>Cancel</Button>

@@ -24,6 +24,7 @@ import {
 } from "recharts";
 import * as d3 from "d3";
 import { Link } from "react-router-dom";
+import UserAvatar from "./UserAvatar";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -205,7 +206,6 @@ function TopUsersChart({ data, compact }) {
             width={compact ? 70 : 100}
             tick={({ x, y, payload }) => {
               const user = data.find((u) => u.username === payload.value);
-              const img = getProfilePictureUrl(user?.profilePicture);
               return (
                 <g
                   transform={`translate(${x - (compact ? 18 : 30)},${
@@ -213,16 +213,7 @@ function TopUsersChart({ data, compact }) {
                   })`}
                 >
                   <foreignObject width="24" height="24">
-                    <Avatar
-                      src={img}
-                      sx={{
-                        width: 20,
-                        height: 20,
-                        mr: 1,
-                        display: "inline-block",
-                        verticalAlign: "middle",
-                      }}
-                    />
+                    <UserAvatar user={user} size={20} sx={{ mr: 1, display: "inline-block", verticalAlign: "middle" }} />
                   </foreignObject>
                   <text
                     x={compact ? 26 : 35}
