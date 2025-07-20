@@ -9,7 +9,7 @@ PalZone is a social networking web application built with React (frontend) and N
 
 ---
 
-## ✨ Features (MVP)
+## ✨ Features
 
 - **User Authentication**: Register, login, logout, JWT-based auth, user profiles.
 - **Feed & Posts**: Home feed, create/edit/delete posts (text, image, video), like, comment, filter posts.
