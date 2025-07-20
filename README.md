@@ -1,4 +1,4 @@
-#  PalZone
+# PalZone
 
 PalZone is a full-stack social network platform that enables users to connect, share, and communicate in real time. This MVP delivers the essential features of a modern social network, including posts, groups, friends, chat, and statistics, with a responsive and intuitive UI.
 
@@ -30,49 +30,87 @@ PalZone is a social networking web application built with React (frontend) and N
 
 ---
 
-## 🏁 Getting Started
+## 🏁 Step-by-Step Setup Guide
 
-### Prerequisites
-- Node.js 
-- MongoDB (local or cloud)
+### 1. Prerequisites
+- **Node.js** (v16+ recommended): [Download & Install Node.js](https://nodejs.org/)
+- **npm** (comes with Node.js)
+- **MongoDB** (local or cloud):
+  - **Local:** [Download & Install MongoDB Community Server](https://www.mongodb.com/try/download/community)
+  - **Cloud:** [Sign up for MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
 
-### Installation
+### 2. Clone the Repository
+```bash
+git clone https://github.com/yourusername/effisocial.git
+cd effisocial
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/effisocial.git
-   cd effisocial
-   ```
+### 3. Install Dependencies
+- **Backend:**
+  ```bash
+  cd server
+  npm install
+  ```
+- **Frontend:**
+  ```bash
+  cd ../client
+  npm install
+  ```
 
-2. **Install dependencies:**
-   - Backend:
-     ```bash
-     cd server
-     npm install
-     ```
-   - Frontend:
-     ```bash
-     cd ../client
-     npm install
-     ```
+### 4. Configure Environment Variables
 
-3. **Configure environment variables:**
-   - Copy `.env.example` to `.env` in the `server/` folder and set your MongoDB URI, JWT secret, etc.
+#### Backend (.env in `server/`)
+Create a `.env` file in the `server` directory with the following content:
+```env
+# MongoDB connection string (local or Atlas)
+MONGODB_URI=mongodb://localhost:27017/effisocial
 
-4. **Run the app:**
-   - Start backend:
-     ```bash
-     cd server
-     npm run dev
-     ```
-   - Start frontend:
-     ```bash
-     cd ../client
-     npm start
-     ```
+# JWT secret and expiration
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRE=7d
 
-5. **Open in browser:**
-   - Visit [http://localhost:3000](http://localhost:3000)
+# CORS origin for frontend
+CLIENT_URL=http://localhost:3000
+
+# Server port (optional)
+PORT=5000
+
+# Node environment (optional)
+NODE_ENV=development
+```
+- If using MongoDB Atlas, replace `MONGODB_URI` with your Atlas connection string.
+- Set a strong value for `JWT_SECRET`.
+
+#### Frontend (.env in `client/` - optional)
+If you want to change the backend API URL, create a `.env` file in the `client` directory:
+```env
+REACT_APP_API_URL=http://localhost:5000/api
+```
+
+### 5. Start MongoDB
+- **Local:**
+  - If installed locally, start MongoDB with:
+    ```bash
+    mongod
+    ```
+  - Or use MongoDB Compass or your OS service manager.
+- **Cloud:**
+  - No action needed; just ensure your Atlas cluster is running and your URI is correct.
+
+### 6. Run the App
+- **Backend:**
+  ```bash
+  cd server
+  npm run dev
+  ```
+- **Frontend:**
+  ```bash
+  cd ../client
+  npm start
+  ```
+
+### 7. Open in Browser
+Visit [http://localhost:3000](http://localhost:3000)
 
 ---
 
@@ -89,6 +127,21 @@ SocialNetwork/
 
 ---
 
+## 🖼️ Screenshots
+
+Here are some screenshots of PalZone in action:
+
+| Home Page | Profile Page |
+|-----------|-------------|
+| ![Home](./Screenshots/Home.png) | ![Profile](./Screenshots/Profile.png) |
+
+| Groups List | Group Details |
+|-------------|---------------|
+| ![Groups](./Screenshots/Groups.png) | ![Group](./Screenshots/Group.png) |
+
+| Chat | Statistics |
+|------|------------|
+| ![Chat](./Screenshots/Chat.png) | ![Statistics](./Screenshots/Stat.png) |
 
 ---
 
