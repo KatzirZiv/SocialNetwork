@@ -8,7 +8,6 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 
-// Pages (to be created)
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
@@ -23,10 +22,10 @@ const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#ffb6d5",
+      main: "#42a5f5", // light blue
     },
     secondary: {
-      main: "#dc004e",
+      main: "#1976d2", // blue for contrast
     },
     background: {
       default: "#f7f9fb",

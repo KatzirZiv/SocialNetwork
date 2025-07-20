@@ -479,11 +479,12 @@ const Profile = () => {
                   textTransform: "none",
                   fontWeight: 500,
                   px: 3,
-                  color: "#ffb6d5",
-                  borderColor: "#ffb6d5",
-                  "&:hover": {
-                    backgroundColor: "#ffd1ea",
-                    borderColor: "#ffb6d5",
+                  color: "#42a5f5",
+                  borderColor: "#42a5f5",
+                  '&:hover': {
+                    backgroundColor: "#90caf9",
+                    borderColor: "#42a5f5",
+                    color: "#1976d2",
                   },
                 }}
               >
@@ -497,11 +498,12 @@ const Profile = () => {
                   textTransform: "none",
                   fontWeight: 500,
                   px: 3,
-                  color: "#ffb6d5",
-                  borderColor: "#ffb6d5",
-                  "&:hover": {
-                    backgroundColor: "#ffd1ea",
-                    borderColor: "#ffb6d5",
+                  color: "#42a5f5",
+                  borderColor: "#42a5f5",
+                  '&:hover': {
+                    backgroundColor: "#90caf9",
+                    borderColor: "#42a5f5",
+                    color: "#1976d2",
                   },
                 }}
               >
@@ -577,11 +579,12 @@ const Profile = () => {
                     textTransform: "none",
                     fontWeight: 500,
                     px: 3,
-                    color: "#ffb6d5",
-                    borderColor: "#ffb6d5",
-                    "&:hover": {
-                      backgroundColor: "#ffd1ea",
-                      borderColor: "#ffb6d5",
+                    color: "#42a5f5",
+                    borderColor: "#42a5f5",
+                    '&:hover': {
+                      backgroundColor: "#90caf9",
+                      borderColor: "#42a5f5",
+                      color: "#1976d2",
                     },
                   }}
                 >
@@ -598,9 +601,9 @@ const Profile = () => {
                     textTransform: "none",
                     fontWeight: 500,
                     px: 3,
-                    backgroundColor: "#ffb6d5",
+                    backgroundColor: "#42a5f5",
                     color: "#fff",
-                    "&:hover": { backgroundColor: "#ffd1ea" },
+                    '&:hover': { backgroundColor: "#90caf9", color: "#1976d2" },
                   }}
                 >
                   Add Friend

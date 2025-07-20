@@ -322,9 +322,9 @@ const Groups = () => {
           startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
           sx={{
-            backgroundColor: "#ffb6d5",
+            backgroundColor: "#42a5f5",
             color: "#fff",
-            "&:hover": { backgroundColor: "#ffd1ea" },
+            '&:hover': { backgroundColor: "#90caf9" },
           }}
         >
           Create Group

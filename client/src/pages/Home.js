@@ -325,10 +325,10 @@ const Home = () => {
           <button
             className="project-ui-btn contained"
             style={{
-              background: "#ffb6d5",
+              background: "#42a5f5",
               color: "#fff",
-              border: "1.5px solid #ffb6d5",
-              boxShadow: "0 1px 4px rgba(255,182,213,0.08)",
+              border: "1.5px solid #42a5f5",
+              boxShadow: "0 1px 4px rgba(66,165,245,0.08)",
               padding: "8px 28px",
               borderRadius: "20px",
               fontWeight: 600,
@@ -337,6 +337,8 @@ const Home = () => {
               cursor: "pointer",
               transition: "background 0.18s, color 0.18s, box-shadow 0.18s",
             }}
+            onMouseOver={e => e.currentTarget.style.background = "#90caf9"}
+            onMouseOut={e => e.currentTarget.style.background = "#42a5f5"}
             onClick={() => {
               setPendingFilters(filters);
               setFilterDialogOpen(true);

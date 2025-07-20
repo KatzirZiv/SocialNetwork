@@ -170,7 +170,7 @@ const FriendsList = ({ compact }) => {
           <Box sx={{ mt: 2, textAlign: "center" }}>
             <button
               style={{
-                background: "#ffb6d5",
+                background: "#42a5f5",
                 color: "#fff",
                 border: "none",
                 borderRadius: 16,
@@ -178,13 +178,11 @@ const FriendsList = ({ compact }) => {
                 fontSize: 14,
                 fontWeight: 500,
                 cursor: "pointer",
-                boxShadow: "0 1px 4px rgba(255, 182, 213, 0.08)",
+                boxShadow: "0 1px 4px rgba(66, 165, 245, 0.08)",
                 transition: "background 0.2s",
               }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#ffd1ea")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = "#ffb6d5")}
+              onMouseOver={e => e.currentTarget.style.background = "#90caf9"}
+              onMouseOut={e => e.currentTarget.style.background = "#42a5f5"}
               onClick={() => setFindFriendsOpen(true)}
             >
               Find a new Friend

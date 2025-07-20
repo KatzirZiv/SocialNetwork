@@ -19,25 +19,25 @@ body {
 }
 
 .button, .MuiButton-root, .like-btn, .comment-btn, .share-btn {
-  background: #ff69b4;
+  background: #42a5f5;
   color: #fff;
   border-radius: 999px;
   opacity: 0.8;
   font-weight: 600;
   transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
-  box-shadow: 0 1px 4px rgba(255,105,180,0.08);
+  box-shadow: 0 1px 4px rgba(66,165,245,0.08);
 }
 
 .button:hover, .MuiButton-root:hover, .like-btn:hover, .comment-btn:hover, .share-btn:hover {
   opacity: 1;
-  background: #ff4fa3;
-  box-shadow: 0 2px 8px rgba(255,105,180,0.15);
+  background: #90caf9;
+  box-shadow: 0 2px 8px rgba(66,165,245,0.15);
   transform: translateY(-2px) scale(1.04);
 }
 
 .like-btn.animated {
   animation: heart-bounce 0.4s cubic-bezier(.36,1.01,.32,1) both;
-  background: #ff69b4;
+  background: #42a5f5;
   color: #fff;
 }
 
@@ -50,7 +50,7 @@ body {
 
 .heart-icon {
   transition: fill 0.3s;
-  fill: #ff69b4;
+  fill: #42a5f5;
 }
 
 .heart-icon.outline {
@@ -68,7 +68,7 @@ body {
   background: #f5f5f5;
 }
 ::-webkit-scrollbar-thumb {
-  background: #ff69b4;
+  background: #42a5f5;
   border-radius: 8px;
   opacity: 0.5;
 }
@@ -89,7 +89,7 @@ body {
 }
 
 .App-header {
-  background-color: #ffd1ea;
+  background-color: #90caf9;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -100,7 +100,7 @@ body {
 }
 
 .App-link {
-  color: #ffb6d5;
+  color: #42a5f5;
 }
 
 @keyframes App-logo-spin {
@@ -133,42 +133,42 @@ h1, h2, h3, .MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3 {
   background: none;
   cursor: pointer;
   transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-  box-shadow: 0 1px 4px rgba(255,182,213,0.08);
+  box-shadow: 0 1px 4px rgba(66,165,245,0.08);
 }
 .project-ui-btn.contained {
-  background: #ffb6d5;
+  background: #42a5f5;
   color: #fff;
-  border: 1.5px solid #ffb6d5;
+  border: 1.5px solid #42a5f5;
 }
 .project-ui-btn.contained:hover {
-  background: #ffd1ea;
-  color: #ff4fa3;
-  border: 1.5px solid #ffb6d5;
+  background: #90caf9;
+  color: #1976d2;
+  border: 1.5px solid #42a5f5;
 }
 .project-ui-btn.outlined {
   background: #fff;
-  color: #ffb6d5;
-  border: 1.5px solid #ffb6d5;
+  color: #42a5f5;
+  border: 1.5px solid #42a5f5;
 }
 .project-ui-btn.outlined:hover {
-  background: #ffd1ea;
-  color: #ff4fa3;
-  border: 1.5px solid #ffb6d5;
+  background: #90caf9;
+  color: #1976d2;
+  border: 1.5px solid #42a5f5;
 }
 .custom-filter-btn {
   padding: 7px 22px;
   border-radius: 20px;
-  border: 1.5px solid #ffb6d5;
+  border: 1.5px solid #42a5f5;
   background: #fff;
-  color: #ffb6d5;
+  color: #42a5f5;
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.18s, color 0.18s, box-shadow 0.18s;
-  box-shadow: 0 1px 4px rgba(255,182,213,0.08);
+  box-shadow: 0 1px 4px rgba(66,165,245,0.08);
 }
 .custom-filter-btn:hover {
-  background: #ffd1ea;
-  color: #ff4fa3;
-  border: 1.5px solid #ffb6d5;
+  background: #90caf9;
+  color: #1976d2;
+  border: 1.5px solid #42a5f5;
 }
