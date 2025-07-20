@@ -25,8 +25,7 @@ PalZone is a social networking web application built with React (frontend) and N
 
 - **Frontend**: React, React Router, Material UI, React Query, Socket.io-client
 - **Backend**: Node.js, Express, MongoDB (Mongoose), Socket.io, JWT, Multer
-- **Testing**: Jest, Supertest
-- **Other**: D3/Recharts (statistics), dotenv, CORS, Morgan
+- **Other**: D3/Recharts (statistics), dotenv, CORS, 
 
 ---
 
